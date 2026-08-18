@@ -1,0 +1,979 @@
+    Here is an end-to-end architectural plan and implementation roadmap for building a modular, cross-framework Speaking Practice & AI Review platform.
+
+---
+
+### 1. High-Level System Architecture
+
+To ensure the recording and speaking module can easily be integrated into both **React** and **Angular** (or any other modern web framework), the system is structured in three decoupled layers:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      UI Framework Layer                     │
+│   ┌────────────────────────┐    ┌───────────────────────┐   │
+│   │   @speech-coach/react  │    │ @speech-coach/angular │   │
+│   │ (Custom Hooks & Comps) │    │(Services & Components)│   │
+│   └───────────┬────────────┘    └───────────┬───────────┘   │
+└───────────────┼─────────────────────────────┼───────────────┘
+                ▼                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Core Engine (@speech-coach/core)               │
+│  - State Machine (IDLE -> PREP -> SPEAKING -> PROCESSING)   │
+│  - MediaRecorder & WebRTC / Camera Stream Management         │
+│  - Precision Timer & Event Emitter Engine                   │
+│  - Web Audio API (Live Volume / Silence Detection)          │
+└──────────────────────────────┬──────────────────────────────┘
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 AI Analysis & Backend Layer                 │
+│  - Audio Extraction & STT (Whisper / Deepgram)              │
+│  - LLM Feedback Pipeline (Pacing, Fluency, Fillers, Content)│
+│  - Media Storage (S3 / GCS / Cloudflare R2)                 │
+└─────────────────────────────────────────────────────────────┘
+
+```
+
+---
+
+### 2. Core Engine Design (`@speech-coach/core`)
+
+The core library is written in vanilla TypeScript with zero framework dependencies.
+
+#### State Machine
+
+The session follows a predictable state flow:
+
+* `IDLE`: Displays the assigned topic and preparation controls.
+* `PREPARING`: Countdown timer for reading the prompt and organizing thoughts.
+* `SPEAKING`: Camera and microphone activate; live video feed is displayed, and audio/video is recorded.
+* `PROCESSING`: Recording stops, media chunks are packaged into a `Blob`, and uploaded for AI analysis.
+* `REVIEW`: Displays synchronized video playback, transcript, and structured AI feedback.
+
+#### Key Modules
+
+1. **`MediaStreamManager`**: Handles `navigator.mediaDevices.getUserMedia()`, device selection, permissions, and stream cleanup.
+2. **`SessionTimer`**: Emits tick events, remaining time, elapsed time, and threshold triggers (e.g., auto-transition from prep to speaking).
+3. **`AudioAnalyzer`**: Uses `AudioContext` and `AnalyserNode` to compute real-time decibel levels for audio visualizers and silence tracking.
+4. **`MediaRecorderWrapper`**: Captures video/audio chunks with standard codecs (`video/webm;codecs=vp9,opus` or fallback `mp4`) and returns exportable blobs.
+
+---
+
+### 3. Cross-Framework Integration Strategy
+
+#### React Integration (`@speech-coach/react`)
+
+* **`useSpeechSession(config)` Hook**:
+* Exposes reactive state: `state`, `timeRemaining`, `stream`, `audioLevel`, `recordingBlob`, `feedback`.
+* Exposes control methods: `startPreparation()`, `startSpeaking()`, `stopRecording()`, `reset()`.
+
+
+* **Headless / Styled Components**:
+* `<CameraPreview stream={stream} />`
+* `<TimerDisplay time={timeRemaining} />`
+* `<AudioVisualizer level={audioLevel} />`
+* `<FeedbackDashboard feedback={feedback} />`
+
+
+
+#### Angular Integration (`@speech-coach/angular`)
+
+* **`SpeechSessionService`**:
+* Wraps the core engine with RxJS `Observable` / `Signals` (e.g., `state$`, `timer$`, `stream$`).
+* Provides dependency injection for custom API backends and configuration tokens.
+
+
+* **Standalone Components**:
+* `<speech-camera-preview [stream]="stream" />`
+* `<speech-timer [seconds]="remainingSeconds" />`
+* `<speech-feedback-view [data]="feedbackData" />`
+
+
+
+---
+
+### 4. AI Feedback Pipeline
+
+#### Step 1: Ingestion & Transcription
+
+* The client sends the recorded audio/video blob to the backend.
+* Audio track is extracted and passed to a Speech-to-Text model (e.g., OpenAI Whisper or Deepgram) to produce:
+* Full transcript.
+* Word-level timestamps (for detecting pauses and calculating speaking rate).
+
+
+
+#### Step 2: Linguistic & Delivery Evaluation
+
+The transcript and timing data are evaluated against the assigned topic using an LLM pipeline producing structured JSON:
+
+* **Fluency & Pacing**: Words Per Minute (WPM), hesitation duration, and pause distribution.
+* **Filler Word Tracking**: Exact occurrences and timestamps for fillers (*"um"*, *"ah"*, *"like"*, *"you know"*).
+* **Topic Adherence & Content Structure**: Relevance score, key arguments addressed, clarity of reasoning.
+* **Grammar & Vocabulary**: Grammar corrections, tone analysis, and vocabulary variety/enhancements.
+
+#### Example Structured Output Schema:
+
+```json
+{
+  "overallScore": 84,
+  "metrics": {
+    "wordsPerMinute": 135,
+    "pacingRating": "Optimal",
+    "fillerWordCount": 4,
+    "topicRelevanceScore": 90,
+    "vocabularyVarietyScore": 80
+  },
+  "fillerWords": [
+    { "word": "um", "timestamp": 12.4 },
+    { "word": "like", "timestamp": 25.1 }
+  ],
+  "strengths": [
+    "Clear introduction and strong thesis statement.",
+    "Consistent speaking pace without long silent pauses."
+  ],
+  "areasForImprovement": [
+    "Reduce transitional filler words when switching topics.",
+    "Expand on supporting examples in the second half."
+  ]
+}
+
+```
+
+---
+
+### 5. Implementation Roadmap
+
+```
+Phase 1: Core Engine & Media Capture
+  ├── Build Vanilla TS state machine & event system
+  ├── Implement MediaStream and MediaRecorder wrappers
+  └── Add Web Audio analyzer for live volume/waveform
+
+Phase 2: Framework Wrappers
+  ├── React hooks and context provider
+  ├── Angular services (Signals/RxJS) and standalone components
+  └── Demo playground for testing in both environments
+
+Phase 3: Backend & AI Analysis API
+  ├── File upload and secure cloud storage pipeline
+  ├── STT integration with word-level timestamps
+  └── LLM evaluation prompt engineering with structured JSON schema
+
+Phase 4: Feedback Dashboard & UI Polish
+  ├── Synchronized transcript-to-video playback
+  ├── Interactive metric cards and actionable suggestion lists
+  └── Topic bank / randomizer module
+
+```
+
+---
+
+### Next Steps & Required Reference Details
+
+Whenever you are ready, please share:
+
+1. **The reference interface images** to align the component layout, camera preview styling, timer UI, and feedback cards with your design.
+2. **Preferred Tech Stack**: Any specific backend framework (e.g., ASP.NET Core, Node.js/NestJS, FastAPI) or preferred AI providers for transcription and LLM evaluation.
+
+---
+For maximum development speed and minimal complexity, the recommended stack is **Node.js (Express or Next.js Route Handler)** paired with a **Multimodal AI API (e.g., Gemini 1.5 Flash or Groq/Whisper + Llama)**.
+
+### Why this is the fastest setup:
+
+1. **Single-Endpoint Architecture**: No complex worker queues, database setup, or intermediate S3 buckets needed for MVP.
+2. **Direct Audio/Video Ingestion**: Multimodal models accept the recorded audio/video blob directly in a single `multipart/form-data` request, returning transcription, pacing analysis, filler words, and coaching feedback in one round trip (~1.5–2 seconds).
+
+---
+
+### 1. Fastest Backend Implementation (`server.js`)
+
+```javascript
+import express from 'express';
+import multer from 'multer';
+import cors from 'cors';
+import { GoogleGenAI, Type } from '@google/genai';
+
+const app = express();
+const upload = multer({ storage: multer.memoryStorage() });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+app.use(cors());
+app.use(express.json());
+
+// Single endpoint: Audio/Video upload -> AI Review
+app.post('/api/review-speech', upload.single('media'), async (req, res) => {
+  try {
+    const { topic, durationSeconds, mode } = req.body;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ error: 'No audio/video file provided' });
+    }
+
+    const prompt = `
+      You are an expert speech coach. Analyze the user's spoken response on the topic: "${topic}".
+      Mode: ${mode || 'Off the cuff'} (Target duration: ${durationSeconds || 60} seconds).
+      Evaluate their speech following the 3-part framework:
+      1. What? (The concept/definition)
+      2. So what? (Why it matters/impact)
+      3. Now what? (Actionable takeaways or future outlook)
+
+      Provide structured analysis for fluency, filler words (e.g., "um", "ah", "like"), pacing (WPM), and concrete coaching tips.
+    `;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-1.5-flash',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: prompt },
+            {
+              inlineData: {
+                mimeType: file.mimetype,
+                data: file.buffer.toString('base64'),
+              },
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            overallScore: { type: Type.NUMBER },
+            transcript: { type: Type.STRING },
+            wordsPerMinute: { type: Type.NUMBER },
+            fillerWords: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  word: { type: Type.STRING },
+                  count: { type: Type.NUMBER },
+                },
+              },
+            },
+            structureEvaluation: {
+              type: Type.OBJECT,
+              properties: {
+                whatCovered: { type: Type.BOOLEAN },
+                soWhatCovered: { type: Type.BOOLEAN },
+                nowWhatCovered: { type: Type.BOOLEAN },
+                feedback: { type: Type.STRING },
+              },
+            },
+            strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+            areasToImprove: { type: Type.ARRAY, items: { type: Type.STRING } },
+          },
+          required: ['overallScore', 'transcript', 'wordsPerMinute', 'structureEvaluation', 'strengths', 'areasToImprove'],
+        },
+      },
+    });
+
+    const result = JSON.parse(response.text);
+    return res.json(result);
+  } catch (error) {
+    console.error('AI Analysis failed:', error);
+    return res.status(500).json({ error: 'Failed to analyze speech' });
+  }
+});
+
+app.listen(5000, () => console.log('Speech Review Server running on http://localhost:5000'));
+
+```
+
+---
+
+### 2. Frontend: Modular Core Hook (`useSpeechSession.js`)
+
+This hook encapsulates the **Camera stream**, **MediaRecorder**, **Precision Timer**, and **Audio Synthesizer** so it can be plugged into any React project.
+
+```javascript
+import { useState, useRef, useEffect, useCallback } from 'react';
+
+export function useSpeechSession({ speechDuration = 60, apiUrl = 'http://localhost:5000/api/review-speech' }) {
+  const [sessionState, setSessionState] = useState('idle'); // 'idle' | 'recording' | 'processing' | 'review'
+  const [timeRemaining, setTimeRemaining] = useState(speechDuration);
+  const [videoStream, setVideoStream] = useState(null);
+  const [recordedUrl, setRecordedUrl] = useState(null);
+  const [aiFeedback, setAiFeedback] = useState(null);
+
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
+  const timerIntervalRef = useRef(null);
+
+  // Initialize camera and microphone
+  const startRecording = useCallback(async (topic, mode = 'Off the cuff') => {
+    try {
+      recordedChunksRef.current = [];
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 1280, height: 720, facingMode: 'user' },
+        audio: true,
+      });
+
+      setVideoStream(stream);
+      setSessionState('recording');
+      setTimeRemaining(speechDuration);
+
+      const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8,opus' });
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) recordedChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        // Stop stream tracks
+        stream.getTracks().forEach((track) => track.stop());
+        setVideoStream(null);
+
+        const videoBlob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+        setRecordedUrl(URL.createObjectURL(videoBlob));
+        setSessionState('processing');
+
+        // Send to backend
+        const formData = new FormData();
+        formData.append('media', videoBlob, 'speech.webm');
+        formData.append('topic', topic);
+        formData.append('durationSeconds', speechDuration);
+        formData.append('mode', mode);
+
+        try {
+          const res = await fetch(apiUrl, { method: 'POST', body: formData });
+          const feedback = await res.json();
+          setAiFeedback(feedback);
+          setSessionState('review');
+        } catch (err) {
+          console.error(err);
+          setSessionState('idle');
+        }
+      };
+
+      recorder.start(1000);
+
+      // Start countdown
+      const endTime = Date.now() + speechDuration * 1000;
+      timerIntervalRef.current = setInterval(() => {
+        const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+        setTimeRemaining(remaining);
+        if (remaining <= 0) {
+          clearInterval(timerIntervalRef.current);
+          recorder.stop();
+        }
+      }, 100);
+    } catch (err) {
+      console.error('Camera/Mic permission denied:', err);
+    }
+  }, [speechDuration, apiUrl]);
+
+  const stopRecording = useCallback(() => {
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+  }, []);
+
+  const resetSession = useCallback(() => {
+    stopRecording();
+    setSessionState('idle');
+    setAiFeedback(null);
+    setRecordedUrl(null);
+    setTimeRemaining(speechDuration);
+  }, [stopRecording, speechDuration]);
+
+  return {
+    sessionState,
+    timeRemaining,
+    videoStream,
+    recordedUrl,
+    aiFeedback,
+    startRecording,
+    stopRecording,
+    resetSession,
+  };
+}
+
+```
+
+---
+
+### 3. Integrated React UI (`UnpromptedCoach.jsx`)
+
+This matches the dark theme, Fraunces serif typography, the reel spinner, and adds the **Camera View** directly inside the speech ring and an **AI Review Card**.
+
+```jsx
+import React, { useState, useRef, useEffect } from 'react';
+import { useSpeechSession } from './useSpeechSession';
+
+const TOPICS = {
+  'Tech / AI': ['Hallucination', 'Agentic workflow', 'Context window', 'Black box', 'Prompt engineering'],
+  'General': ['Brainrot', 'Nostalgia', 'Muscle Memory', 'Comfort Zone', 'Waiting Room'],
+  'Startups': ['Founder mode', 'Product-market fit', 'Burn rate', 'Zero to one', 'Pivot']
+};
+
+export default function UnpromptedCoach() {
+  const [niche, setNiche] = useState('Tech / AI');
+  const [topic, setTopic] = useState('Hallucination');
+  const [isSpinning, setIsSpinning] = useState(false);
+  const videoRef = useRef(null);
+
+  const {
+    sessionState,
+    timeRemaining,
+    videoStream,
+    recordedUrl,
+    aiFeedback,
+    startRecording,
+    stopRecording,
+    resetSession
+  } = useSpeechSession({ speechDuration: 60 });
+
+  // Attach live camera stream
+  useEffect(() => {
+    if (videoRef.current && videoStream) {
+      videoRef.current.srcObject = videoStream;
+    }
+  }, [videoStream]);
+
+  const spinTopic = () => {
+    setIsSpinning(true);
+    let count = 0;
+    const pool = TOPICS[niche];
+    const interval = setInterval(() => {
+      setTopic(pool[Math.floor(Math.random() * pool.length)]);
+      count++;
+      if (count > 15) {
+        clearInterval(interval);
+        setIsSpinning(false);
+      }
+    }, 80);
+  };
+
+  // 3-part framework progression: What? (0-20s), So what? (20-40s), Now what? (40-60s)
+  const elapsed = 60 - timeRemaining;
+  const stage = elapsed < 20 ? 0 : elapsed < 40 ? 1 : 2;
+  const progressPercent = (elapsed / 60);
+
+  return (
+    <div className="page">
+      <div className="atmosphere" />
+      
+      {/* Header */}
+      <header className="brand">
+        <p className="brand-mark">Unprompted</p>
+        <h1 className="brand-line">AI-Powered Speaking Practice</h1>
+      </header>
+
+      {/* Main Stage */}
+      <main className="stage">
+        <div className="stage-body">
+          <div className="controls">
+            <select 
+              value={niche} 
+              onChange={(e) => setNiche(e.target.value)} 
+              className="niche-trigger"
+              disabled={sessionState !== 'idle'}
+            >
+              {Object.keys(TOPICS).map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </div>
+
+          <section className={`reel ${isSpinning ? 'is-spinning' : 'is-landed'}`}>
+            <p className="reel-eyebrow">YOUR TOPIC</p>
+            <p className="reel-phrase">{topic}</p>
+          </section>
+        </div>
+
+        {/* Actions */}
+        <div className="actions">
+          <button className="btn primary" onClick={spinTopic} disabled={isSpinning || sessionState !== 'idle'}>
+            {isSpinning ? 'Spinning…' : 'Spin again'}
+          </button>
+          <button className="btn secondary" onClick={() => startRecording(topic)} disabled={isSpinning || sessionState !== 'idle'}>
+            Start 1 min timer & Camera
+          </button>
+        </div>
+      </main>
+
+      {/* Live Camera & Recording Overlay */}
+      {sessionState === 'recording' && (
+        <div className="timer-overlay is-live">
+          <div className="timer-overlay-inner">
+            <p className="timer-topic">{topic}</p>
+
+            {/* Speaking Stages */}
+            <ol className="speech-stages">
+              {['What?', 'So what?', 'Now what?'].map((label, idx) => (
+                <li key={label} className={`speech-stage ${idx <= stage ? 'is-hit' : 'is-pending'}`}>
+                  <span className="speech-stage-label">{label}</span>
+                </li>
+              ))}
+            </ol>
+
+            {/* Camera Frame with Timer Ring */}
+            <div className="camera-container" style={{ position: 'relative', width: 340, height: 340, borderRadius: '50%', overflow: 'hidden' }}>
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                muted 
+                style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} 
+              />
+              <div 
+                className="timer-ring-overlay" 
+                style={{
+                  position: 'absolute', inset: 0,
+                  borderRadius: '50%',
+                  boxShadow: 'inset 0 0 0 6px #c47a4a'
+                }}
+              />
+              <div style={{ position: 'absolute', bottom: 20, width: '100%', textAlign: 'center' }}>
+                <span className="timer-digits" style={{ fontSize: '2.5rem', background: 'rgba(0,0,0,0.5)', padding: '4px 16px', borderRadius: 999 }}>
+                  0:{timeRemaining.toString().padStart(2, '0')}
+                </span>
+              </div>
+            </div>
+
+            <p className="timer-status">Speak now on "{topic}"</p>
+            <button className="btn primary" onClick={stopRecording}>Finish Speaking Early</button>
+          </div>
+        </div>
+      )}
+
+      {/* AI Processing Screen */}
+      {sessionState === 'processing' && (
+        <div className="timer-overlay">
+          <div className="timer-overlay-inner">
+            <p className="timer-status">Analyzing your speech delivery with AI…</p>
+          </div>
+        </div>
+      )}
+
+      {/* AI Feedback & Review Modal */}
+      {sessionState === 'review' && aiFeedback && (
+        <div className="timer-overlay">
+          <div className="timer-overlay-inner" style={{ maxWidth: 680, textAlign: 'left' }}>
+            <h2 className="brand-mark" style={{ fontSize: '2rem' }}>AI Speech Feedback</h2>
+            <p className="timer-topic">Topic: {topic}</p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%', margin: '1rem 0' }}>
+              <div className="speech-stage" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--accent)' }}>OVERALL SCORE</span>
+                <strong style={{ fontSize: '2rem' }}>{aiFeedback.overallScore} / 100</strong>
+              </div>
+              <div className="speech-stage" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--accent)' }}>PACING (WPM)</span>
+                <strong style={{ fontSize: '2rem' }}>{aiFeedback.wordsPerMinute} WPM</strong>
+              </div>
+            </div>
+
+            {/* Video Playback */}
+            {recordedUrl && (
+              <video src={recordedUrl} controls style={{ width: '100%', borderRadius: '1rem', maxHeight: 220, background: '#000' }} />
+            )}
+
+            {/* Strengths & Improvements */}
+            <div style={{ marginTop: '1rem' }}>
+              <h4 style={{ color: '#b7efc5', margin: '0.5rem 0' }}>Strengths</h4>
+              <ul>{aiFeedback.strengths.map((s, i) => <li key={i}>{s}</li>)}</ul>
+
+              <h4 style={{ color: 'var(--accent-bright)', margin: '0.5rem 0' }}>Areas to Improve</h4>
+              <ul>{aiFeedback.areasToImprove.map((a, i) => <li key={i}>{a}</li>)}</ul>
+            </div>
+
+            <button className="btn primary" onClick={resetSession} style={{ marginTop: '1.5rem', width: '100%' }}>
+              Practice Another Topic
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+```
+
+---
+
+### 4. Angular Equivalent Adapter (`speech-session.service.ts`)
+
+To port the exact same capability into an **Angular** app, use this standalone service:
+
+```typescript
+import { Injectable, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+
+export interface SpeechFeedback {
+  overallScore: number;
+  wordsPerMinute: number;
+  strengths: string[];
+  areasToImprove: string[];
+}
+
+@Injectable({ providedIn: 'root' })
+export class SpeechSessionService {
+  state = signal<'idle' | 'recording' | 'processing' | 'review'>('idle');
+  timeRemaining = signal<number>(60);
+  feedback = signal<SpeechFeedback | null>(null);
+  recordedBlobUrl = signal<string | null>(null);
+
+  private mediaRecorder: MediaRecorder | null = null;
+  private stream: MediaStream | null = null;
+  private chunks: Blob[] = [];
+  private timer: any = null;
+
+  constructor(private http: HttpClient) {}
+
+  async start(topic: string, durationSeconds: number = 60) {
+    this.chunks = [];
+    this.stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    this.state.set('recording');
+    this.timeRemaining.set(durationSeconds);
+
+    this.mediaRecorder = new MediaRecorder(this.stream);
+    this.mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) this.chunks.push(e.data); };
+    
+    this.mediaRecorder.onstop = () => {
+      this.stream?.getTracks().forEach((t) => t.stop());
+      const blob = new Blob(this.chunks, { type: 'video/webm' });
+      this.recordedBlobUrl.set(URL.createObjectURL(blob));
+      this.state.set('processing');
+
+      const formData = new FormData();
+      formData.append('media', blob, 'speech.webm');
+      formData.append('topic', topic);
+
+      this.http.post<SpeechFeedback>('http://localhost:5000/api/review-speech', formData)
+        .subscribe({
+          next: (res) => {
+            this.feedback.set(res);
+            this.state.set('review');
+          },
+          error: () => this.state.set('idle')
+        });
+    };
+
+    this.mediaRecorder.start(1000);
+    this.timer = setInterval(() => {
+      this.timeRemaining.update((v) => {
+        if (v <= 1) {
+          clearInterval(this.timer);
+          this.mediaRecorder?.stop();
+          return 0;
+        }
+        return v - 1;
+      });
+    }, 1000);
+  }
+
+  stop() {
+    if (this.timer) clearInterval(this.timer);
+    this.mediaRecorder?.stop();
+  }
+}
+
+```
+---
+To build this as a completely independent, plug-and-play component or library that can be reused across different frontend projects (React, Angular, Vue, or plain HTML), there are two standard approaches:
+
+---
+
+### Architecture Comparison
+
+| Approach | Best For | How It Works |
+| --- | --- | --- |
+| **1. Universal Web Component (Lit / Vanilla JS)** | **100% Framework Agnostic** | A single `<speech-coach>` custom HTML element with encapsulated Shadow DOM styles that drops into React, Angular, Vue, or plain HTML with zero framework lock-in. |
+| **2. Headless Core + Framework Wrappers (TanStack Pattern)** | **Native Look & Feel** | A core business logic package (`@speech-coach/core`) with dedicated thin UI wrappers (`@speech-coach/react`, `@speech-coach/angular`). |
+
+---
+
+### Strategy 1: Universal Web Component (Fastest & Most Portable)
+
+Using **Lit** or vanilla Web Components, you can compile the entire UI (theme, timer, camera, audio, and API communication) into a single bundle.
+
+#### 1. Define the Component (`packages/web-component/src/SpeechCoach.ts`)
+
+```typescript
+import { LitElement, html, css } from 'lit';
+import { customElement, property, state } from 'lit/decorators.js';
+
+@customElement('speech-coach')
+export class SpeechCoach extends LitElement {
+  @property({ type: String }) topic = 'General Topic';
+  @property({ type: Number }) duration = 60;
+  @property({ type: String, attribute: 'api-url' }) apiUrl = 'https://your-api.com/api/review-speech';
+
+  @state() private sessionState: 'idle' | 'recording' | 'processing' | 'review' = 'idle';
+  @state() private timeRemaining = 60;
+  @state() private feedback: any = null;
+
+  private mediaRecorder?: MediaRecorder;
+  private stream?: MediaStream;
+  private chunks: Blob[] = [];
+  private timerInterval?: any;
+
+  static styles = css`
+    :host {
+      --accent: #c47a4a;
+      --bg: #121816;
+      --text: #f4e8d6;
+      display: block;
+      font-family: 'Outfit', sans-serif;
+      color: var(--text);
+    }
+    .modal {
+      position: fixed; inset: 0; background: rgba(10, 14, 13, 0.95);
+      display: grid; place-items: center; z-index: 9999;
+    }
+    .camera-circle {
+      width: 320px; height: 320px; border-radius: 50%;
+      overflow: hidden; position: relative; border: 4px solid var(--accent);
+    }
+    video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+    .btn {
+      background: var(--accent); color: #1a1612; border: none;
+      padding: 0.8rem 1.5rem; border-radius: 999px; font-weight: 600; cursor: pointer;
+    }
+  `;
+
+  async startSpeaking() {
+    this.chunks = [];
+    this.timeRemaining = this.duration;
+    this.stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    this.sessionState = 'recording';
+
+    this.mediaRecorder = new MediaRecorder(this.stream);
+    this.mediaRecorder.ondataavailable = (e) => this.chunks.push(e.data);
+    this.mediaRecorder.onstop = () => this.handleStop();
+    this.mediaRecorder.start(1000);
+
+    const videoEl = this.shadowRoot?.querySelector('video');
+    if (videoEl) videoEl.srcObject = this.stream;
+
+    this.timerInterval = setInterval(() => {
+      this.timeRemaining--;
+      if (this.timeRemaining <= 0) this.stopSpeaking();
+    }, 1000);
+  }
+
+  stopSpeaking() {
+    clearInterval(this.timerInterval);
+    this.mediaRecorder?.stop();
+    this.stream?.getTracks().forEach((t) => t.stop());
+  }
+
+  private async handleStop() {
+    this.sessionState = 'processing';
+    const blob = new Blob(this.chunks, { type: 'video/webm' });
+    const formData = new FormData();
+    formData.append('media', blob);
+    formData.append('topic', this.topic);
+
+    try {
+      const res = await fetch(this.apiUrl, { method: 'POST', body: formData });
+      this.feedback = await res.json();
+      this.sessionState = 'review';
+      this.dispatchEvent(new CustomEvent('speech-completed', { detail: this.feedback }));
+    } catch {
+      this.sessionState = 'idle';
+    }
+  }
+
+  render() {
+    return html`
+      <div>
+        <button class="btn" @click="${this.startSpeaking}">Start Speaking (${this.duration}s)</button>
+
+        ${this.sessionState === 'recording'
+          ? html`
+              <div class="modal">
+                <div class="camera-circle">
+                  <video autoplay playsinline muted></video>
+                </div>
+                <h2>0:${this.timeRemaining.toString().padStart(2, '0')}</h2>
+                <button class="btn" @click="${this.stopSpeaking}">Finish</button>
+              </div>
+            `
+          : ''}
+      </div>
+    `;
+  }
+}
+
+```
+
+---
+
+### Strategy 2: Monorepo Setup (Headless Core + Native Wrappers)
+
+If you prefer native idiomatic components for both React (Hooks/JSX) and Angular (Signals/Services):
+
+```
+speech-coach/
+├── packages/
+│   ├── core/               # Pure TypeScript (Engine, MediaRecorder, Timer, Types)
+│   ├── react/              # React components & useSpeechCoach hook
+│   └── angular/            # Angular NgModule / Standalone Component & Service
+├── package.json
+└── turbo.json
+
+```
+
+#### Step 1: Headless Core (`@speech-coach/core`)
+
+Exports the state machine and audio/video pipeline with zero framework dependencies.
+
+```typescript
+// packages/core/src/index.ts
+export type CoachState = 'idle' | 'recording' | 'processing' | 'review';
+
+export interface SpeechCoachConfig {
+  apiUrl: string;
+  duration?: number;
+  onStateChange?: (state: CoachState) => void;
+  onTick?: (remaining: number) => void;
+  onFeedback?: (feedback: any) => void;
+}
+
+export class SpeechCoachCore {
+  private config: SpeechCoachConfig;
+  private recorder?: MediaRecorder;
+  private stream?: MediaStream;
+  private chunks: Blob[] = [];
+  private timer?: any;
+
+  constructor(config: SpeechCoachConfig) {
+    this.config = config;
+  }
+
+  async start(topic: string) {
+    this.chunks = [];
+    this.stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    this.recorder = new MediaRecorder(this.stream);
+    this.recorder.ondataavailable = (e) => this.chunks.push(e.data);
+    this.recorder.onstop = () => this.process(topic);
+    this.recorder.start();
+    this.config.onStateChange?.('recording');
+
+    let remaining = this.config.duration || 60;
+    this.timer = setInterval(() => {
+      remaining--;
+      this.config.onTick?.(remaining);
+      if (remaining <= 0) this.stop();
+    }, 1000);
+
+    return this.stream;
+  }
+
+  stop() {
+    clearInterval(this.timer);
+    this.recorder?.stop();
+    this.stream?.getTracks().forEach((t) => t.stop());
+  }
+
+  private async process(topic: string) {
+    this.config.onStateChange?.('processing');
+    const blob = new Blob(this.chunks, { type: 'video/webm' });
+    const formData = new FormData();
+    formData.append('media', blob);
+    formData.append('topic', topic);
+
+    const res = await fetch(this.config.apiUrl, { method: 'POST', body: formData });
+    const data = await res.json();
+    this.config.onFeedback?.(data);
+    this.config.onStateChange?.('review');
+  }
+}
+
+```
+
+---
+
+### How to Use in Different Projects
+
+#### 1. In Any React Project
+
+Install: `npm install @speech-coach/react`
+
+```jsx
+import { SpeechCoachModal } from '@speech-coach/react';
+import '@speech-coach/react/dist/index.css';
+
+export function App() {
+  return (
+    <SpeechCoachModal
+      topic="Agentic Workflow"
+      duration={60}
+      apiUrl="https://your-api.com/api/review-speech"
+      onFeedback={(review) => console.log('Score:', review.overallScore)}
+    />
+  );
+}
+
+```
+
+#### 2. In Any Angular Project
+
+Install: `npm install @speech-coach/angular`
+
+```typescript
+// app.component.ts
+import { Component } from '@angular/core';
+import { SpeechCoachComponent } from '@speech-coach/angular';
+
+@Component({
+  standalone: true,
+  imports: [SpeechCoachComponent],
+  template: `
+    <speech-coach-modal
+      [topic]="'Agentic Workflow'"
+      [duration]="60"
+      [apiUrl]="'https://your-api.com/api/review-speech'"
+      (feedback)="onFeedback($event)"
+    />
+  `,
+})
+export class AppComponent {
+  onFeedback(review: any) {
+    console.log('Feedback received:', review);
+  }
+}
+
+```
+
+#### 3. In Plain HTML / Vanilla JS / Other Frameworks (Via Web Component)
+
+Include via script tag:
+
+```html
+<script type="module" src="https://unpkg.com/@speech-coach/web-component/dist/index.js"></script>
+
+<speech-coach 
+  topic="Agentic Workflow" 
+  duration="60" 
+  api-url="https://your-api.com/api/review-speech">
+</speech-coach>
+
+<script>
+  const coach = document.querySelector('speech-coach');
+  coach.addEventListener('speech-completed', (e) => {
+    console.log('AI Review:', e.detail);
+  });
+</script>
+
+```
+
+---
+
+### Publishing & Distribution Checklist
+
+1. **Build Tooling (`tsup` / `vite`)**: Configure `tsup` in each package to generate both `esm` (`index.mjs`) and `cjs` (`index.cjs`) along with `.d.ts` declaration maps.
+2. **NPM Distribution**:
+* Set `"main": "./dist/index.cjs"`, `"module": "./dist/index.mjs"`, `"types": "./dist/index.d.ts"`.
+* Publish using `npm publish --access public` (or to a private npm registry like Verdaccio / GitHub Packages).
+
+
+3. **Local Testing Before Publish**: Run `npm link` or `yalc` to test integration in local Angular and React test apps without publishing to npm.
