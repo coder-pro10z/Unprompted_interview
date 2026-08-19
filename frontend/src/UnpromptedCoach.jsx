@@ -94,43 +94,76 @@ export default function UnpromptedCoach() {
     }, 80);
   };
 
+  const shareRecording = async () => {
+    if (navigator.share && recordedUrl) {
+      try {
+        const response = await fetch(recordedUrl);
+        const blob = await response.blob();
+        const file = new File([blob], 'unprompted_speech.webm', { type: 'video/webm' });
+        await navigator.share({
+          title: 'My Unprompted Speech',
+          text: `Check out my speech on "${topic}"!`,
+          files: [file]
+        });
+      } catch (err) {
+        console.error("Error sharing:", err);
+      }
+    }
+  };
+
   const selectedNicheObj = activeNiches.find(n => n.id === niche) || activeNiches[0];
   const elapsed = 60 - timeRemaining;
   const stage = elapsed < 20 ? 0 : elapsed < 40 ? 1 : 2;
 
   return (
-    <div className="page">
+    <div className="page" style={{ opacity: sessionState === 'idle' ? 1 : 0, pointerEvents: sessionState === 'idle' ? 'auto' : 'none', transition: 'opacity 0.3s ease' }}>
       <div className="atmosphere" />
       
       {/* Header */}
-      <header className="brand">
-        <h1 className="brand-mark">Unprompted</h1>
-        <div className="brand-credit">
-          made by 
-          <span className="credit-pill">
-            <InstagramIcon /> @praveenkashyap.10
-          </span>
+      <header className="brand" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0 1rem', marginBottom: '1rem' }}>
+        <div style={{ flex: 1 }} />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 2 }}>
+          <h1 className="brand-mark" style={{ margin: 0, fontSize: '2rem' }}>Unprompted</h1>
+          <div className="brand-credit">
+            made by 
+            <span className="credit-pill">
+              <InstagramIcon /> @praveenkashyap.10
+            </span>
+          </div>
+        </div>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+          <button 
+            style={{ 
+              background: 'none', border: 'none', color: 'rgba(244, 232, 214, 0.6)', 
+              cursor: 'pointer', padding: '0.5rem', width: '48px', height: '48px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}
+            onClick={() => setShowSettings(true)}
+            aria-label="Settings"
+          >
+            <GearIcon />
+          </button>
         </div>
       </header>
 
-      {/* Main Stage */}
-      <main className="stage" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      {/* Main Stage - Flex 1 to push actions to bottom */}
+      <main className="stage" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, justifyContent: 'center', width: '100%' }}>
         
         {/* Mode Selector */}
         <div className="mode-selector">
           <button 
             className={`mode-btn ${contextMode === 'general' ? 'active' : ''}`}
             onClick={() => { setContextMode('general'); setNiche(GENERAL_NICHES[0].id); }}
-            disabled={sessionState !== 'idle'}
+            style={{ minHeight: '48px' }}
           >
-            🧠 General Topics
+            🧠 General
           </button>
           <button 
             className={`mode-btn ${contextMode === 'interview' ? 'active' : ''}`}
             onClick={() => { setContextMode('interview'); setNiche(INTERVIEW_NICHES[0].id); }}
-            disabled={sessionState !== 'idle'}
+            style={{ minHeight: '48px' }}
           >
-            💼 Tech Interview
+            💼 Tech
           </button>
         </div>
         <p className="mode-desc">
@@ -138,12 +171,12 @@ export default function UnpromptedCoach() {
         </p>
 
         {/* Niche Dropdown Custom */}
-        <div className="niche-selector" ref={dropdownRef}>
+        <div className="niche-selector" ref={dropdownRef} style={{ marginBottom: '2rem' }}>
           <div className="niche-dropdown-container">
             <button 
               className="niche-trigger" 
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              disabled={sessionState !== 'idle'}
+              style={{ minHeight: '48px' }}
             >
               <span className="niche-icon">{selectedNicheObj.icon}</span>
               <span className="niche-label">{selectedNicheObj.id}</span>
@@ -158,6 +191,7 @@ export default function UnpromptedCoach() {
                       key={n.id} 
                       className="niche-dropdown-item" 
                       onClick={() => { setNiche(n.id); setIsDropdownOpen(false); }}
+                      style={{ minHeight: '48px' }}
                     >
                       <span className="niche-icon">{n.icon}</span>
                       <span>{n.id}</span>
@@ -170,48 +204,30 @@ export default function UnpromptedCoach() {
         </div>
 
         {/* Reel */}
-        <section className={`reel ${isSpinning ? 'is-spinning' : ''}`}>
+        <section className={`reel ${isSpinning ? 'is-spinning' : ''}`} style={{ marginBottom: '0' }}>
           <p className="reel-eyebrow">READY</p>
-          <p className="reel-phrase">{topic}</p>
+          <p className="reel-phrase" style={{ fontSize: '3.5rem', padding: '0 1rem' }}>{topic}</p>
         </section>
 
-        {/* Actions */}
-        <div className="actions">
-          <button className="btn primary" onClick={spinTopic} disabled={isSpinning || sessionState !== 'idle'}>
-            {isSpinning ? 'Spinning…' : 'Spin'}
-          </button>
-          <button className="btn secondary" onClick={() => startRecording(topic, enableAiReview, contextMode)} disabled={isSpinning || sessionState !== 'idle'}>
-            Start 1 min timer
-          </button>
-          <button 
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              color: 'rgba(244, 232, 214, 0.6)', 
-              cursor: 'pointer', 
-              display: 'flex', 
-              alignItems: 'center', 
-              padding: '0.5rem',
-              transition: 'color 0.2s'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.color = '#f4e8d6'}
-            onMouseOut={(e) => e.currentTarget.style.color = 'rgba(244, 232, 214, 0.6)'}
-            onClick={() => setShowSettings(true)}
-            disabled={sessionState !== 'idle'}
-            aria-label="Settings"
-          >
-            <GearIcon />
-          </button>
-        </div>
       </main>
+
+      {/* Actions pinned to bottom */}
+      <div className="actions" style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '1rem', padding: '1rem', paddingBottom: '2rem' }}>
+        <button className="btn primary" onClick={spinTopic} disabled={isSpinning} style={{ width: '100%', minHeight: '56px', fontSize: '1.1rem' }}>
+          {isSpinning ? 'Spinning…' : 'Spin'}
+        </button>
+        <button className="btn secondary" onClick={() => startRecording(topic, enableAiReview, contextMode)} disabled={isSpinning} style={{ width: '100%', minHeight: '56px', fontSize: '1.1rem' }}>
+          Start 1 min timer
+        </button>
+      </div>
 
       {/* Settings Modal */}
       {showSettings && (
-        <div className="settings-modal-overlay" onClick={() => setShowSettings(false)}>
+        <div className="settings-modal-overlay" onClick={() => setShowSettings(false)} style={{ zIndex: 9999, pointerEvents: 'auto', opacity: 1 }}>
           <div className="settings-modal" onClick={e => e.stopPropagation()}>
             <div className="settings-header">
               <h3>Settings</h3>
-              <button className="close-btn" onClick={() => setShowSettings(false)}>×</button>
+              <button className="close-btn" onClick={() => setShowSettings(false)} style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
             </div>
             
             <div className="setting-row">
@@ -233,64 +249,74 @@ export default function UnpromptedCoach() {
       )}
 
       {/* Live Camera & Recording Overlay */}
-      {sessionState === 'recording' && (
-        <div className="timer-overlay is-live">
-          <div className="timer-overlay-inner">
-            <p className="timer-topic">{topic}</p>
-
-            {/* Speaking Stages */}
-            <ol className="speech-stages">
-              {['What?', 'So what?', 'Now what?'].map((label, idx) => (
-                <li key={label} className={`speech-stage ${idx <= stage ? 'is-hit' : ''}`}>
-                  <span>{label}</span>
-                </li>
-              ))}
-            </ol>
-
-            {/* Camera Frame with Timer Ring */}
-            <div className="camera-container" style={{ position: 'relative', width: 340, height: 340, borderRadius: '50%', overflow: 'hidden', margin: '0 auto' }}>
-              <video 
-                ref={videoRef} 
-                autoPlay 
-                playsInline 
-                muted 
-                style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} 
-              />
-              <div 
-                className="timer-ring-overlay" 
-                style={{
-                  position: 'absolute', inset: 0,
-                  borderRadius: '50%',
-                  boxShadow: 'inset 0 0 0 6px var(--accent)'
-                }}
-              />
-              <div style={{ position: 'absolute', bottom: 20, width: '100%', textAlign: 'center' }}>
-                <span className="timer-digits" style={{ fontSize: '2.5rem', background: 'rgba(17,21,20,0.6)', padding: '4px 16px', borderRadius: 999 }}>
-                  0:{timeRemaining.toString().padStart(2, '0')}
-                </span>
+      <div className="timer-overlay is-live" style={{ opacity: sessionState === 'recording' ? 1 : 0, pointerEvents: sessionState === 'recording' ? 'auto' : 'none', transition: 'opacity 0.3s ease', display: 'flex', flexDirection: 'column', height: '100dvh', padding: 'env(safe-area-inset-top) 1rem env(safe-area-inset-bottom) 1rem' }}>
+        {sessionState === 'recording' && (
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', maxWidth: '600px', margin: '0 auto' }}>
+            
+            <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+              <p className="timer-topic" style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>{topic}</p>
+              
+              {/* Horizontally Scrollable Speech Stages */}
+              <div style={{ overflowX: 'auto', whiteSpace: 'nowrap', paddingBottom: '0.5rem', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+                <ol className="speech-stages" style={{ display: 'inline-flex', gap: '0.5rem', margin: '0 auto' }}>
+                  {['What?', 'So what?', 'Now what?'].map((label, idx) => (
+                    <li key={label} className={`speech-stage ${idx <= stage ? 'is-hit' : ''}`} style={{ flexShrink: 0 }}>
+                      <span>{label}</span>
+                    </li>
+                  ))}
+                </ol>
               </div>
             </div>
 
-            <p className="timer-status">Speak now on "{topic}"</p>
-            <button className="btn primary" onClick={stopRecording}>Finish Speaking Early</button>
+            {/* Camera Frame perfectly centered and responsive */}
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="camera-container" style={{ position: 'relative', width: '80vw', maxWidth: '340px', aspectRatio: '1/1', borderRadius: '50%', overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
+                <video 
+                  ref={videoRef} 
+                  autoPlay 
+                  playsInline 
+                  muted 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} 
+                />
+                <div 
+                  className="timer-ring-overlay" 
+                  style={{
+                    position: 'absolute', inset: 0,
+                    borderRadius: '50%',
+                    boxShadow: 'inset 0 0 0 6px var(--accent)'
+                  }}
+                />
+                <div style={{ position: 'absolute', bottom: '15%', width: '100%', textAlign: 'center' }}>
+                  <span className="timer-digits" style={{ fontSize: '2.5rem', background: 'rgba(17,21,20,0.7)', padding: '4px 16px', borderRadius: 999, fontWeight: 600 }}>
+                    0:{timeRemaining.toString().padStart(2, '0')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: '1rem 0 2rem 0', textAlign: 'center' }}>
+              <p className="timer-status" style={{ marginBottom: '1rem' }}>Speak now on "{topic}"</p>
+              <button className="btn primary" onClick={stopRecording} style={{ width: '100%', minHeight: '56px', fontSize: '1.1rem' }}>
+                Finish Speaking Early
+              </button>
+            </div>
+
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* AI Processing Screen */}
-      {sessionState === 'processing' && (
-        <div className="timer-overlay">
-          <div className="timer-overlay-inner">
-            <p className="timer-status">Analyzing your speech delivery with AI…</p>
-          </div>
+      <div className="timer-overlay" style={{ opacity: sessionState === 'processing' ? 1 : 0, pointerEvents: sessionState === 'processing' ? 'auto' : 'none', transition: 'opacity 0.3s ease' }}>
+        <div className="timer-overlay-inner">
+          <p className="timer-status">Analyzing your speech delivery with AI…</p>
         </div>
-      )}
+      </div>
 
-      {/* Review Modal (With or Without AI Feedback) */}
-      {sessionState === 'review' && (
-        <div className="timer-overlay" style={{ overflowY: 'auto' }}>
-          <div className="timer-overlay-inner" style={{ maxWidth: 680, textAlign: 'left', marginTop: 'auto', marginBottom: 'auto', padding: '2rem 0' }}>
-            <h2 className="brand-mark" style={{ fontSize: '2.5rem' }}>
+      {/* Review Modal */}
+      <div className="timer-overlay" style={{ opacity: sessionState === 'review' ? 1 : 0, pointerEvents: sessionState === 'review' ? 'auto' : 'none', transition: 'opacity 0.3s ease', overflowY: 'auto', padding: 'env(safe-area-inset-top) 1rem env(safe-area-inset-bottom) 1rem' }}>
+        {sessionState === 'review' && (
+          <div className="timer-overlay-inner" style={{ maxWidth: 680, textAlign: 'left', margin: 'auto', padding: '2rem 0', minHeight: '100%' }}>
+            <h2 className="brand-mark" style={{ fontSize: '2.2rem' }}>
               {aiFeedback?.overallScore ? 'AI Speech Feedback' : 'Speech Review'}
             </h2>
             <p className="timer-topic" style={{ fontSize: '1.2rem', fontWeight: 400 }}>Topic: {topic}</p>
@@ -308,14 +334,19 @@ export default function UnpromptedCoach() {
               </div>
             )}
 
-            {/* Video Playback & Download Button */}
+            {/* Video Playback & Actions */}
             {recordedUrl && (
               <div style={{ margin: aiFeedback?.overallScore ? '0' : '2rem 0' }}>
-                <video src={recordedUrl} controls style={{ width: '100%', borderRadius: '1rem', maxHeight: 300, background: '#000' }} />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-                  <a href={recordedUrl} download="unprompted_speech.webm" className="btn secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
-                    ⬇ Download Recording
+                <video src={recordedUrl} controls playsInline style={{ width: '100%', borderRadius: '1rem', maxHeight: 400, background: '#000', objectFit: 'contain' }} />
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                  <a href={recordedUrl} download="unprompted_speech.webm" className="btn secondary" style={{ padding: '0.8rem 1rem', fontSize: '0.9rem', flex: 1, textAlign: 'center' }}>
+                    ⬇ Download
                   </a>
+                  {navigator.share && (
+                    <button onClick={shareRecording} className="btn primary" style={{ padding: '0.8rem 1rem', fontSize: '0.9rem', flex: 1 }}>
+                      ⤴ Share to App
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -335,35 +366,35 @@ export default function UnpromptedCoach() {
               <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <div>
                   <h4 style={{ color: '#b7efc5', margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Strengths</h4>
-                  <ul>{aiFeedback.strengths?.map((s, i) => <li key={i}>{s}</li>)}</ul>
+                  <ul style={{ paddingLeft: '1.2rem' }}>{aiFeedback.strengths?.map((s, i) => <li key={i}>{s}</li>)}</ul>
                 </div>
                 <div>
                   <h4 style={{ color: 'var(--accent-bright)', margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Areas to Improve</h4>
-                  <ul>{aiFeedback.areasToImprove?.map((a, i) => <li key={i}>{a}</li>)}</ul>
+                  <ul style={{ paddingLeft: '1.2rem' }}>{aiFeedback.areasToImprove?.map((a, i) => <li key={i}>{a}</li>)}</ul>
                 </div>
               </div>
             )}
 
-            <button className="btn primary" onClick={resetSession} style={{ marginTop: '2rem', width: '100%' }}>
+            <button className="btn primary" onClick={resetSession} style={{ marginTop: '3rem', width: '100%', minHeight: '56px', fontSize: '1.1rem', marginBottom: '2rem' }}>
               Practice Another Topic
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Error/Warning Custom Modal */}
       {sessionError && (
-        <div className="settings-modal-overlay" onClick={() => setSessionError(null)} style={{ zIndex: 9999 }}>
+        <div className="settings-modal-overlay" onClick={() => setSessionError(null)} style={{ zIndex: 9999, opacity: 1, pointerEvents: 'auto' }}>
           <div className="settings-modal" onClick={e => e.stopPropagation()} style={{ border: '1px solid var(--accent)', maxWidth: 450 }}>
             <div className="settings-header" style={{ marginBottom: '1rem' }}>
               <h3 style={{ color: 'var(--accent)', fontSize: '1.25rem' }}>Notice</h3>
-              <button className="close-btn" onClick={() => setSessionError(null)}>×</button>
+              <button className="close-btn" onClick={() => setSessionError(null)} style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
             </div>
             <p style={{ color: 'rgba(244, 232, 214, 0.9)', lineHeight: '1.6', fontSize: '1rem', margin: 0 }}>
               {sessionError}
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
-              <button className="btn primary" onClick={() => setSessionError(null)} style={{ padding: '0.6rem 1.5rem', fontSize: '0.9rem' }}>
+              <button className="btn primary" onClick={() => setSessionError(null)} style={{ padding: '0.8rem 1.5rem', fontSize: '1rem' }}>
                 Understood
               </button>
             </div>

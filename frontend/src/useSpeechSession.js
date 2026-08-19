@@ -17,7 +17,7 @@ export function useSpeechSession({ speechDuration = 60, apiUrl = import.meta.env
     try {
       recordedChunksRef.current = [];
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 1280, height: 720, facingMode: 'user' },
+        video: { width: 1280, height: 720, facingMode: 'user', aspectRatio: 9/16 },
         audio: true,
       });
 
@@ -29,17 +29,9 @@ export function useSpeechSession({ speechDuration = 60, apiUrl = import.meta.env
       setSessionState('recording');
       setTimeRemaining(speechDuration);
 
-      // Relax constraints to fix audio dropping bugs on some browsers/OS
-      const types = ['video/webm;codecs=vp8,opus', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
-      let selectedType = '';
-      for (const t of types) {
-        if (MediaRecorder.isTypeSupported(t)) {
-          selectedType = t;
-          break;
-        }
-      }
-      
-      const recorder = new MediaRecorder(stream, selectedType ? { mimeType: selectedType } : undefined);
+      // Omitting the mimeType option entirely forces Chrome/Safari/Firefox 
+      // to fallback to their most robust native multiplexer for both audio + video.
+      const recorder = new MediaRecorder(stream);
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (e) => {

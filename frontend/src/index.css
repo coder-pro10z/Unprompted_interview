@@ -17,16 +17,21 @@ body {
   background-color: var(--bg);
   color: var(--text);
   font-family: 'Outfit', sans-serif;
-  overflow-x: hidden;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  width: 100vw;
+  height: 100dvh;
 }
 
 .page {
   position: relative;
-  min-height: 100vh;
+  height: 100dvh;
+  width: 100vw;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 3rem 1rem;
+  padding: env(safe-area-inset-top, 1rem) env(safe-area-inset-right, 1rem) env(safe-area-inset-bottom, 1rem) env(safe-area-inset-left, 1rem);
+  box-sizing: border-box;
 }
 
 .atmosphere {
