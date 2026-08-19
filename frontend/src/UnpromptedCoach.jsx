@@ -104,7 +104,7 @@ export default function UnpromptedCoach() {
       </header>
 
       {/* Main Stage */}
-      <main className="stage" style={{ alignItems: 'center' }}>
+      <main className="stage" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         
         {/* Mode Selector */}
         <div className="mode-selector">
@@ -154,14 +154,6 @@ export default function UnpromptedCoach() {
                     </button>
                   ))}
                 </div>
-                {/* Floating Settings Gear attached to dropdown */}
-                <button 
-                  className="dropdown-settings-btn" 
-                  onClick={() => { setShowSettings(true); setIsDropdownOpen(false); }}
-                  aria-label="Settings"
-                >
-                  <GearIcon />
-                </button>
               </div>
             )}
           </div>
@@ -180,6 +172,25 @@ export default function UnpromptedCoach() {
           </button>
           <button className="btn secondary" onClick={() => startRecording(topic, enableAiReview)} disabled={isSpinning || sessionState !== 'idle'}>
             Start 1 min timer
+          </button>
+          <button 
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              color: 'rgba(244, 232, 214, 0.6)', 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              padding: '0.5rem',
+              transition: 'color 0.2s'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.color = '#f4e8d6'}
+            onMouseOut={(e) => e.currentTarget.style.color = 'rgba(244, 232, 214, 0.6)'}
+            onClick={() => setShowSettings(true)}
+            disabled={sessionState !== 'idle'}
+            aria-label="Settings"
+          >
+            <GearIcon />
           </button>
         </div>
       </main>
