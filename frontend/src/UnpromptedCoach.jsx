@@ -61,8 +61,8 @@ export default function UnpromptedCoach() {
 
   // Attach live camera stream
   useEffect(() => {
-    if (videoRef.current && videoStream) {
-      videoRef.current.srcObject = videoStream;
+    if (videoRef.current) {
+      videoRef.current.srcObject = videoStream || null;
     }
   }, [videoStream]);
 

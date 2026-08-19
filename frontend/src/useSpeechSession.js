@@ -56,11 +56,16 @@ export function useSpeechSession({ speechDuration = 60, apiUrl = import.meta.env
         try {
           const res = await fetch(apiUrl, { method: 'POST', body: formData });
           const feedback = await res.json();
+          if (!res.ok || feedback.error) {
+            throw new Error(feedback.error || 'Server returned an error');
+          }
           setAiFeedback(feedback);
           setSessionState('review');
         } catch (err) {
           console.error(err);
-          setSessionState('idle');
+          alert(`AI Review Failed: ${err.message}. You can still review your video.`);
+          setAiFeedback(null);
+          setSessionState('review');
         }
       };
 

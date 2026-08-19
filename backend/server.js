@@ -120,7 +120,7 @@ app.post('/api/review-speech', upload.single('media'), async (req, res) => {
         'X-Title': 'Unprompted Coach', // Optional, for OpenRouter rankings
       },
       body: JSON.stringify({
-        model: 'openai/gpt-oss-120b', // or the exact 120b model ID you wish to use on OpenRouter
+        model: 'meta-llama/llama-3.1-70b-instruct', // Using a valid large OpenRouter model
         messages: [
           {
             role: 'system',
