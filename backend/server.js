@@ -20,6 +20,10 @@ app.post('/api/review-speech', upload.single('media'), async (req, res) => {
       return res.status(400).json({ error: 'No audio/video file provided' });
     }
 
+    if (!process.env.GROQ_API_KEY || !process.env.OPENROUTER_API_KEY) {
+      return res.status(500).json({ error: 'The server administrator has not configured the required API keys.' });
+    }
+
     // STEP 1: Transcribe using Groq Whisper
     const formData = new FormData();
     formData.append('file', file.buffer, { filename: 'speech.webm', contentType: file.mimetype });
@@ -37,6 +41,9 @@ app.post('/api/review-speech', upload.single('media'), async (req, res) => {
     if (!groqResponse.ok) {
       const errText = await groqResponse.text();
       console.error('Groq STT failed:', errText);
+      if (groqResponse.status === 401 || groqResponse.status === 403) {
+        return res.status(500).json({ error: 'The server transcription API key is invalid or expired.' });
+      }
       return res.status(500).json({ error: 'Failed to transcribe audio' });
     }
 
@@ -140,6 +147,9 @@ app.post('/api/review-speech', upload.single('media'), async (req, res) => {
     if (!openRouterResponse.ok) {
       const errText = await openRouterResponse.text();
       console.error('OpenRouter Evaluation failed:', errText);
+      if (openRouterResponse.status === 401 || openRouterResponse.status === 403) {
+        return res.status(500).json({ error: 'The server AI grading API key is invalid, out of credits, or the model is unavailable.' });
+      }
       return res.status(500).json({ error: 'Failed to evaluate speech' });
     }
 
