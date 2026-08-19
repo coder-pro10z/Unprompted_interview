@@ -106,7 +106,7 @@ export default function UnpromptedCoach() {
         <div className="brand-credit">
           made by 
           <span className="credit-pill">
-            <InstagramIcon /> @bitterbuilds
+            <InstagramIcon /> @praveenkashyap.10
           </span>
         </div>
       </header>
