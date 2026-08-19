@@ -116,109 +116,121 @@ export default function UnpromptedCoach() {
   const stage = elapsed < 20 ? 0 : elapsed < 40 ? 1 : 2;
 
   return (
-    <div className="page" style={{ opacity: sessionState === 'idle' ? 1 : 0, pointerEvents: sessionState === 'idle' ? 'auto' : 'none', transition: 'opacity 0.3s ease' }}>
+    <div className="page">
       <div className="atmosphere" />
       
-      {/* Header */}
-      <header className="brand" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0 1rem', marginBottom: '1rem' }}>
-        <div style={{ flex: 1 }} />
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 2 }}>
-          <h1 className="brand-mark" style={{ margin: 0, fontSize: '2rem' }}>Unprompted</h1>
-          <div className="brand-credit">
-            made by 
-            <span className="credit-pill">
-              <InstagramIcon /> @praveenkashyap.10
-            </span>
+      {/* Setup Screen Container */}
+      <div 
+        style={{ 
+          display: 'flex', flexDirection: 'column', width: '100%', height: '100%',
+          opacity: sessionState === 'idle' ? 1 : 0, 
+          pointerEvents: sessionState === 'idle' ? 'auto' : 'none', 
+          transition: 'opacity 0.3s ease',
+          position: sessionState === 'idle' ? 'relative' : 'absolute',
+          inset: 0
+        }}
+      >
+        {/* Header */}
+        <header className="brand" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0 1rem', marginBottom: '1rem' }}>
+          <div style={{ flex: 1 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 2 }}>
+            <h1 className="brand-mark" style={{ margin: 0, fontSize: '2rem' }}>Unprompted</h1>
+            <div className="brand-credit">
+              made by 
+              <span className="credit-pill">
+                <InstagramIcon /> @praveenkashyap.10
+              </span>
+            </div>
           </div>
-        </div>
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-          <button 
-            style={{ 
-              background: 'none', border: 'none', color: 'rgba(244, 232, 214, 0.6)', 
-              cursor: 'pointer', padding: '0.5rem', width: '48px', height: '48px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}
-            onClick={() => setShowSettings(true)}
-            aria-label="Settings"
-          >
-            <GearIcon />
-          </button>
-        </div>
-      </header>
-
-      {/* Main Stage - Flex 1 to push actions to bottom */}
-      <main className="stage" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, justifyContent: 'center', width: '100%' }}>
-        
-        {/* Mode Selector */}
-        <div className="mode-selector">
-          <button 
-            className={`mode-btn ${contextMode === 'general' ? 'active' : ''}`}
-            onClick={() => { setContextMode('general'); setNiche(GENERAL_NICHES[0].id); }}
-            style={{ minHeight: '48px' }}
-          >
-            🧠 General
-          </button>
-          <button 
-            className={`mode-btn ${contextMode === 'interview' ? 'active' : ''}`}
-            onClick={() => { setContextMode('interview'); setNiche(INTERVIEW_NICHES[0].id); }}
-            style={{ minHeight: '48px' }}
-          >
-            💼 Tech
-          </button>
-        </div>
-        <p className="mode-desc">
-          {contextMode === 'general' ? 'Minimal prep. Try to think quick on your feet.' : 'Test your technical depth and articulation.'}
-        </p>
-
-        {/* Niche Dropdown Custom */}
-        <div className="niche-selector" ref={dropdownRef} style={{ marginBottom: '2rem' }}>
-          <div className="niche-dropdown-container">
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
             <button 
-              className="niche-trigger" 
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              style={{ 
+                background: 'none', border: 'none', color: 'rgba(244, 232, 214, 0.6)', 
+                cursor: 'pointer', padding: '0.5rem', width: '48px', height: '48px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}
+              onClick={() => setShowSettings(true)}
+              aria-label="Settings"
+            >
+              <GearIcon />
+            </button>
+          </div>
+        </header>
+
+        {/* Main Stage - Flex 1 to push actions to bottom */}
+        <main className="stage" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, justifyContent: 'center', width: '100%' }}>
+          
+          {/* Mode Selector */}
+          <div className="mode-selector">
+            <button 
+              className={`mode-btn ${contextMode === 'general' ? 'active' : ''}`}
+              onClick={() => { setContextMode('general'); setNiche(GENERAL_NICHES[0].id); }}
               style={{ minHeight: '48px' }}
             >
-              <span className="niche-icon">{selectedNicheObj.icon}</span>
-              <span className="niche-label">{selectedNicheObj.id}</span>
-              <span className="niche-caret">{isDropdownOpen ? '▲' : '▼'}</span>
+              🧠 General
             </button>
-            
-            {isDropdownOpen && (
-              <div className="niche-dropdown-menu-wrapper">
-                <div className="niche-dropdown-scroll">
-                  {activeNiches.map(n => (
-                    <button 
-                      key={n.id} 
-                      className="niche-dropdown-item" 
-                      onClick={() => { setNiche(n.id); setIsDropdownOpen(false); }}
-                      style={{ minHeight: '48px' }}
-                    >
-                      <span className="niche-icon">{n.icon}</span>
-                      <span>{n.id}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            <button 
+              className={`mode-btn ${contextMode === 'interview' ? 'active' : ''}`}
+              onClick={() => { setContextMode('interview'); setNiche(INTERVIEW_NICHES[0].id); }}
+              style={{ minHeight: '48px' }}
+            >
+              💼 Tech
+            </button>
           </div>
+          <p className="mode-desc">
+            {contextMode === 'general' ? 'Minimal prep. Try to think quick on your feet.' : 'Test your technical depth and articulation.'}
+          </p>
+
+          {/* Niche Dropdown Custom */}
+          <div className="niche-selector" ref={dropdownRef} style={{ marginBottom: '2rem' }}>
+            <div className="niche-dropdown-container">
+              <button 
+                className="niche-trigger" 
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                style={{ minHeight: '48px' }}
+              >
+                <span className="niche-icon">{selectedNicheObj.icon}</span>
+                <span className="niche-label">{selectedNicheObj.id}</span>
+                <span className="niche-caret">{isDropdownOpen ? '▲' : '▼'}</span>
+              </button>
+              
+              {isDropdownOpen && (
+                <div className="niche-dropdown-menu-wrapper">
+                  <div className="niche-dropdown-scroll">
+                    {activeNiches.map(n => (
+                      <button 
+                        key={n.id} 
+                        className="niche-dropdown-item" 
+                        onClick={() => { setNiche(n.id); setIsDropdownOpen(false); }}
+                        style={{ minHeight: '48px' }}
+                      >
+                        <span className="niche-icon">{n.icon}</span>
+                        <span>{n.id}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Reel */}
+          <section className={`reel ${isSpinning ? 'is-spinning' : ''}`} style={{ marginBottom: '0' }}>
+            <p className="reel-eyebrow">READY</p>
+            <p className="reel-phrase" style={{ fontSize: '3.5rem', padding: '0 1rem' }}>{topic}</p>
+          </section>
+
+        </main>
+
+        {/* Actions pinned to bottom */}
+        <div className="actions" style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '1rem', padding: '1rem', paddingBottom: '2rem' }}>
+          <button className="btn primary" onClick={spinTopic} disabled={isSpinning} style={{ width: '100%', minHeight: '56px', fontSize: '1.1rem' }}>
+            {isSpinning ? 'Spinning…' : 'Spin'}
+          </button>
+          <button className="btn secondary" onClick={() => startRecording(topic, enableAiReview, contextMode)} disabled={isSpinning} style={{ width: '100%', minHeight: '56px', fontSize: '1.1rem' }}>
+            Start 1 min timer
+          </button>
         </div>
-
-        {/* Reel */}
-        <section className={`reel ${isSpinning ? 'is-spinning' : ''}`} style={{ marginBottom: '0' }}>
-          <p className="reel-eyebrow">READY</p>
-          <p className="reel-phrase" style={{ fontSize: '3.5rem', padding: '0 1rem' }}>{topic}</p>
-        </section>
-
-      </main>
-
-      {/* Actions pinned to bottom */}
-      <div className="actions" style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '1rem', padding: '1rem', paddingBottom: '2rem' }}>
-        <button className="btn primary" onClick={spinTopic} disabled={isSpinning} style={{ width: '100%', minHeight: '56px', fontSize: '1.1rem' }}>
-          {isSpinning ? 'Spinning…' : 'Spin'}
-        </button>
-        <button className="btn secondary" onClick={() => startRecording(topic, enableAiReview, contextMode)} disabled={isSpinning} style={{ width: '100%', minHeight: '56px', fontSize: '1.1rem' }}>
-          Start 1 min timer
-        </button>
       </div>
 
       {/* Settings Modal */}
