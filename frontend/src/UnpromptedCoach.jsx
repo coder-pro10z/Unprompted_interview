@@ -286,14 +286,14 @@ export default function UnpromptedCoach() {
 
       {/* Review Modal (With or Without AI Feedback) */}
       {sessionState === 'review' && (
-        <div className="timer-overlay">
-          <div className="timer-overlay-inner" style={{ maxWidth: 680, textAlign: 'left' }}>
+        <div className="timer-overlay" style={{ overflowY: 'auto' }}>
+          <div className="timer-overlay-inner" style={{ maxWidth: 680, textAlign: 'left', marginTop: 'auto', marginBottom: 'auto', padding: '2rem 0' }}>
             <h2 className="brand-mark" style={{ fontSize: '2.5rem' }}>
-              {aiFeedback ? 'AI Speech Feedback' : 'Speech Review'}
+              {aiFeedback?.overallScore ? 'AI Speech Feedback' : 'Speech Review'}
             </h2>
             <p className="timer-topic" style={{ fontSize: '1.2rem', fontWeight: 400 }}>Topic: {topic}</p>
 
-            {aiFeedback && (
+            {aiFeedback?.overallScore && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%', margin: '1.5rem 0' }}>
                 <div className="speech-stage" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '1.5rem' }}>
                   <span style={{ fontSize: '0.85rem', color: 'var(--accent)', letterSpacing: '1px' }}>OVERALL SCORE</span>
@@ -306,13 +306,30 @@ export default function UnpromptedCoach() {
               </div>
             )}
 
-            {/* Video Playback */}
+            {/* Video Playback & Download Button */}
             {recordedUrl && (
-              <video src={recordedUrl} controls style={{ width: '100%', borderRadius: '1rem', maxHeight: 300, background: '#000', margin: aiFeedback ? '0' : '2rem 0' }} />
+              <div style={{ margin: aiFeedback?.overallScore ? '0' : '2rem 0' }}>
+                <video src={recordedUrl} controls style={{ width: '100%', borderRadius: '1rem', maxHeight: 300, background: '#000' }} />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                  <a href={recordedUrl} download="unprompted_speech.webm" className="btn secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+                    ⬇ Download Recording
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Verbatim Transcript */}
+            {aiFeedback?.transcript && (
+              <div style={{ marginTop: '2rem' }}>
+                <h4 style={{ color: 'var(--text)', margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>Your Transcript</h4>
+                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '0.5rem', fontSize: '0.95rem', lineHeight: '1.5', color: 'rgba(244, 232, 214, 0.8)', fontStyle: 'italic' }}>
+                  "{aiFeedback.transcript}"
+                </div>
+              </div>
             )}
 
             {/* Strengths & Improvements */}
-            {aiFeedback && (
+            {aiFeedback?.overallScore && (
               <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <div>
                   <h4 style={{ color: '#b7efc5', margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Strengths</h4>

@@ -20,11 +20,25 @@ export function useSpeechSession({ speechDuration = 60, apiUrl = import.meta.env
         audio: true,
       });
 
+      if (stream.getAudioTracks().length === 0) {
+        throw new Error("No microphone audio detected.");
+      }
+
       setVideoStream(stream);
       setSessionState('recording');
       setTimeRemaining(speechDuration);
 
-      const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8,opus' });
+      // Relax constraints to fix audio dropping bugs on some browsers/OS
+      const types = ['video/webm;codecs=vp8,opus', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
+      let selectedType = '';
+      for (const t of types) {
+        if (MediaRecorder.isTypeSupported(t)) {
+          selectedType = t;
+          break;
+        }
+      }
+      
+      const recorder = new MediaRecorder(stream, selectedType ? { mimeType: selectedType } : undefined);
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (e) => {
@@ -56,8 +70,11 @@ export function useSpeechSession({ speechDuration = 60, apiUrl = import.meta.env
         try {
           const res = await fetch(apiUrl, { method: 'POST', body: formData });
           const feedback = await res.json();
-          if (!res.ok || feedback.error) {
+          if (!res.ok) {
             throw new Error(feedback.error || 'Server returned an error');
+          }
+          if (feedback.error) {
+             alert(`AI Review Warning: ${feedback.error}`);
           }
           setAiFeedback(feedback);
           setSessionState('review');

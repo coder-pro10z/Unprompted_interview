@@ -147,10 +147,12 @@ app.post('/api/review-speech', upload.single('media'), async (req, res) => {
     if (!openRouterResponse.ok) {
       const errText = await openRouterResponse.text();
       console.error('OpenRouter Evaluation failed:', errText);
-      if (openRouterResponse.status === 401 || openRouterResponse.status === 403) {
-        return res.status(500).json({ error: 'The server AI grading API key is invalid, out of credits, or the model is unavailable.' });
-      }
-      return res.status(500).json({ error: 'Failed to evaluate speech' });
+      return res.status(200).json({ 
+        transcript, 
+        error: openRouterResponse.status === 401 || openRouterResponse.status === 403 
+          ? 'AI grading API key is invalid or out of credits.' 
+          : 'Failed to evaluate speech with AI.' 
+      });
     }
 
     const orData = await openRouterResponse.json();
@@ -159,7 +161,13 @@ app.post('/api/review-speech', upload.single('media'), async (req, res) => {
     // Clean up potential markdown wrappers
     resultText = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
     
-    const result = JSON.parse(resultText);
+    let result;
+    try {
+      result = JSON.parse(resultText);
+    } catch (e) {
+      console.error('Failed to parse AI JSON:', resultText);
+      return res.status(200).json({ transcript, error: 'AI returned invalid formatting.' });
+    }
     
     // Ensure the original transcript is included in the response if not returned by LLM
     if (!result.transcript) {
@@ -169,7 +177,8 @@ app.post('/api/review-speech', upload.single('media'), async (req, res) => {
     return res.json(result);
   } catch (error) {
     console.error('AI Analysis failed:', error);
-    return res.status(500).json({ error: 'Failed to analyze speech' });
+    // If it's a catastrophic error, return 500
+    return res.status(500).json({ error: 'Catastrophic backend failure.' });
   }
 });
 
