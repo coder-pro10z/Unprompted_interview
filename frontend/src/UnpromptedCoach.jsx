@@ -54,6 +54,8 @@ export default function UnpromptedCoach() {
     videoStream,
     recordedUrl,
     aiFeedback,
+    sessionError,
+    setSessionError,
     startRecording,
     stopRecording,
     resetSession
@@ -345,6 +347,26 @@ export default function UnpromptedCoach() {
             <button className="btn primary" onClick={resetSession} style={{ marginTop: '2rem', width: '100%' }}>
               Practice Another Topic
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Error/Warning Custom Modal */}
+      {sessionError && (
+        <div className="settings-modal-overlay" onClick={() => setSessionError(null)} style={{ zIndex: 9999 }}>
+          <div className="settings-modal" onClick={e => e.stopPropagation()} style={{ border: '1px solid var(--accent)', maxWidth: 450 }}>
+            <div className="settings-header" style={{ marginBottom: '1rem' }}>
+              <h3 style={{ color: 'var(--accent)', fontSize: '1.25rem' }}>Notice</h3>
+              <button className="close-btn" onClick={() => setSessionError(null)}>×</button>
+            </div>
+            <p style={{ color: 'rgba(244, 232, 214, 0.9)', lineHeight: '1.6', fontSize: '1rem', margin: 0 }}>
+              {sessionError}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
+              <button className="btn primary" onClick={() => setSessionError(null)} style={{ padding: '0.6rem 1.5rem', fontSize: '0.9rem' }}>
+                Understood
+              </button>
+            </div>
           </div>
         </div>
       )}

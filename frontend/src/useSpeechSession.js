@@ -6,6 +6,7 @@ export function useSpeechSession({ speechDuration = 60, apiUrl = import.meta.env
   const [videoStream, setVideoStream] = useState(null);
   const [recordedUrl, setRecordedUrl] = useState(null);
   const [aiFeedback, setAiFeedback] = useState(null);
+  const [sessionError, setSessionError] = useState(null);
 
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
@@ -74,13 +75,13 @@ export function useSpeechSession({ speechDuration = 60, apiUrl = import.meta.env
             throw new Error(feedback.error || 'Server returned an error');
           }
           if (feedback.error) {
-             alert(`AI Review Warning: ${feedback.error}`);
+             setSessionError(`AI Review Warning: ${feedback.error}`);
           }
           setAiFeedback(feedback);
           setSessionState('review');
         } catch (err) {
           console.error(err);
-          alert(`AI Review Failed: ${err.message}. You can still review your video.`);
+          setSessionError(`AI Review Failed: ${err.message}. You can still review your video.`);
           setAiFeedback(null);
           setSessionState('review');
         }
@@ -124,6 +125,8 @@ export function useSpeechSession({ speechDuration = 60, apiUrl = import.meta.env
     videoStream,
     recordedUrl,
     aiFeedback,
+    sessionError,
+    setSessionError,
     startRecording,
     stopRecording,
     resetSession,
