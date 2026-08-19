@@ -12,7 +12,7 @@ export function useSpeechSession({ speechDuration = 60, apiUrl = import.meta.env
   const timerIntervalRef = useRef(null);
 
   // Initialize camera and microphone
-  const startRecording = useCallback(async (topic, enableAiReview = true, mode = 'Off the cuff') => {
+  const startRecording = useCallback(async (topic, enableAiReview = true, contextMode = 'general') => {
     try {
       recordedChunksRef.current = [];
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -51,7 +51,7 @@ export function useSpeechSession({ speechDuration = 60, apiUrl = import.meta.env
         formData.append('media', videoBlob, 'speech.webm');
         formData.append('topic', topic);
         formData.append('durationSeconds', speechDuration);
-        formData.append('mode', mode);
+        formData.append('contextMode', contextMode);
 
         try {
           const res = await fetch(apiUrl, { method: 'POST', body: formData });

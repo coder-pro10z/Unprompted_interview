@@ -13,7 +13,7 @@ app.use(express.json());
 // Single endpoint: Audio/Video upload -> AI Review
 app.post('/api/review-speech', upload.single('media'), async (req, res) => {
   try {
-    const { topic, durationSeconds, mode } = req.body;
+    const { topic, durationSeconds, contextMode } = req.body;
     const file = req.file;
 
     if (!file) {
@@ -47,9 +47,41 @@ app.post('/api/review-speech', upload.single('media'), async (req, res) => {
     }
 
     // STEP 2: Evaluate using OpenRouter (120B model)
-    const prompt = `
+    const isInterview = contextMode === 'interview';
+    
+    const prompt = isInterview ? `
+      You are an expert technical interviewer. Evaluate the user's verbal response to the technical topic: "${topic}".
+      (Target duration: ${durationSeconds || 60} seconds).
+      
+      Here is the transcript of their speech:
+      "${transcript}"
+
+      Evaluate their speech strictly on the basis of:
+      1. Articulation and Speech Clarity (How well the topic is articulated, fluency, pacing).
+      2. Technical Concept Accuracy (Is their explanation technically sound and accurate?).
+      3. Communication (Filler words, structuring of thoughts).
+
+      Provide structured analysis and concrete coaching tips tailored for a technical interview setting.
+      Return ONLY a valid JSON object. Do not include markdown formatting or explanations.
+      
+      The JSON must perfectly match this schema:
+      {
+        "overallScore": 85,
+        "transcript": "...",
+        "wordsPerMinute": 130,
+        "fillerWords": [{"word": "um", "count": 2}],
+        "structureEvaluation": {
+          "whatCovered": true,
+          "soWhatCovered": true,
+          "nowWhatCovered": false,
+          "feedback": "..."
+        },
+        "strengths": ["...", "..."],
+        "areasToImprove": ["...", "..."]
+      }
+    ` : `
       You are an expert speech coach. Analyze the user's spoken response on the topic: "${topic}".
-      Mode: ${mode || 'Off the cuff'} (Target duration: ${durationSeconds || 60} seconds).
+      (Target duration: ${durationSeconds || 60} seconds).
       
       Here is the transcript of their speech:
       "${transcript}"
@@ -92,7 +124,9 @@ app.post('/api/review-speech', upload.single('media'), async (req, res) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert technical recruiter AI. Return ONLY a valid JSON object. No markdown, no explanations.'
+            content: isInterview 
+              ? 'You are an expert technical interviewer AI. Return ONLY a valid JSON object. No markdown, no explanations.'
+              : 'You are an expert speech coach AI. Return ONLY a valid JSON object. No markdown, no explanations.'
           },
           {
             role: 'user',

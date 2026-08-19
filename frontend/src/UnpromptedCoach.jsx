@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSpeechSession } from './useSpeechSession';
 
-const NICHES = [
+const GENERAL_NICHES = [
   { id: 'General', icon: '✦', topics: ['Brainrot', 'Nostalgia', 'Muscle Memory', 'Comfort Zone', 'Waiting Room'] },
   { id: 'Personal finance', icon: '💰', topics: ['Budgeting', 'Investing', 'Taxes', 'Credit cards', 'Retirement'] },
   { id: 'Entrepreneurship', icon: '🚀', topics: ['Bootstrapping', 'Venture capital', 'Scaling', 'Hiring', 'Marketing'] },
@@ -12,6 +12,12 @@ const NICHES = [
   { id: 'Productivity', icon: '⚡', topics: ['Pomodoro', 'Time blocking', 'Deep work', 'Habits', 'Focus'] },
   { id: 'History', icon: '📜', topics: ['Roman Empire', 'World War II', 'Industrial Revolution', 'Cold War', 'Renaissance'] },
   { id: 'Literature', icon: '📚', topics: ['Classics', 'Sci-Fi', 'Fantasy', 'Poetry', 'Non-fiction'] }
+];
+
+const INTERVIEW_NICHES = [
+  { id: 'Cloud', icon: '☁️', topics: ['Serverless vs Containers', 'Designing High Availability', 'AWS S3 Consistency Model', 'Explain VPCs'] },
+  { id: 'DevOps', icon: '⚙️', topics: ['CI/CD Pipeline Design', 'Handling Production Outages', 'Infrastructure as Code', 'Kubernetes Architecture'] },
+  { id: 'Full Stack', icon: '💻', topics: ['SQL vs NoSQL', 'React State Management', 'REST vs GraphQL', 'Event Loop in Node.js'] }
 ];
 
 const InstagramIcon = () => (
@@ -30,15 +36,17 @@ const GearIcon = () => (
 );
 
 export default function UnpromptedCoach() {
-  const [niche, setNiche] = useState('General');
-  const [topic, setTopic] = useState('Spam Call');
+  const [contextMode, setContextMode] = useState('general');
+  const [niche, setNiche] = useState(GENERAL_NICHES[0].id);
+  const [topic, setTopic] = useState(GENERAL_NICHES[0].topics[0]);
   const [isSpinning, setIsSpinning] = useState(false);
   const [enableAiReview, setEnableAiReview] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
-  const [mode, setMode] = useState('off_the_cuff');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const videoRef = useRef(null);
+
+  const activeNiches = contextMode === 'general' ? GENERAL_NICHES : INTERVIEW_NICHES;
 
   const {
     sessionState,
@@ -72,7 +80,7 @@ export default function UnpromptedCoach() {
   const spinTopic = () => {
     setIsSpinning(true);
     let count = 0;
-    const selectedNicheObj = NICHES.find(n => n.id === niche) || NICHES[0];
+    const selectedNicheObj = activeNiches.find(n => n.id === niche) || activeNiches[0];
     const pool = selectedNicheObj.topics;
     const interval = setInterval(() => {
       setTopic(pool[Math.floor(Math.random() * pool.length)]);
@@ -84,7 +92,7 @@ export default function UnpromptedCoach() {
     }, 80);
   };
 
-  const selectedNicheObj = NICHES.find(n => n.id === niche) || NICHES[0];
+  const selectedNicheObj = activeNiches.find(n => n.id === niche) || activeNiches[0];
   const elapsed = 60 - timeRemaining;
   const stage = elapsed < 20 ? 0 : elapsed < 40 ? 1 : 2;
 
@@ -109,22 +117,22 @@ export default function UnpromptedCoach() {
         {/* Mode Selector */}
         <div className="mode-selector">
           <button 
-            className={`mode-btn ${mode === 'off_the_cuff' ? 'active' : ''}`}
-            onClick={() => setMode('off_the_cuff')}
+            className={`mode-btn ${contextMode === 'general' ? 'active' : ''}`}
+            onClick={() => { setContextMode('general'); setNiche(GENERAL_NICHES[0].id); }}
             disabled={sessionState !== 'idle'}
           >
-            🧠 Off the cuff
+            🧠 General Topics
           </button>
           <button 
-            className={`mode-btn ${mode === 'deep_research' ? 'active' : ''}`}
-            onClick={() => setMode('deep_research')}
+            className={`mode-btn ${contextMode === 'interview' ? 'active' : ''}`}
+            onClick={() => { setContextMode('interview'); setNiche(INTERVIEW_NICHES[0].id); }}
             disabled={sessionState !== 'idle'}
           >
-            🔍 Deep research
+            💼 Tech Interview
           </button>
         </div>
         <p className="mode-desc">
-          {mode === 'off_the_cuff' ? 'Minimal prep. Try to think quick on your feet.' : 'Take your time. Structure your thoughts before speaking.'}
+          {contextMode === 'general' ? 'Minimal prep. Try to think quick on your feet.' : 'Test your technical depth and articulation.'}
         </p>
 
         {/* Niche Dropdown Custom */}
@@ -143,7 +151,7 @@ export default function UnpromptedCoach() {
             {isDropdownOpen && (
               <div className="niche-dropdown-menu-wrapper">
                 <div className="niche-dropdown-scroll">
-                  {NICHES.map(n => (
+                  {activeNiches.map(n => (
                     <button 
                       key={n.id} 
                       className="niche-dropdown-item" 
@@ -170,7 +178,7 @@ export default function UnpromptedCoach() {
           <button className="btn primary" onClick={spinTopic} disabled={isSpinning || sessionState !== 'idle'}>
             {isSpinning ? 'Spinning…' : 'Spin'}
           </button>
-          <button className="btn secondary" onClick={() => startRecording(topic, enableAiReview)} disabled={isSpinning || sessionState !== 'idle'}>
+          <button className="btn secondary" onClick={() => startRecording(topic, enableAiReview, contextMode)} disabled={isSpinning || sessionState !== 'idle'}>
             Start 1 min timer
           </button>
           <button 
