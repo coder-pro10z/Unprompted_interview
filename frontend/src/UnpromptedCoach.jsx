@@ -131,6 +131,24 @@ export default function UnpromptedCoach() {
           inset: 0
         }}
       >
+        {/* Settings Gear - Top Right */}
+        <div style={{ position: 'absolute', right: '1rem', top: '1rem', zIndex: 10 }}>
+          <button 
+            style={{ 
+              background: 'none', border: 'none', color: 'rgba(244, 232, 214, 0.4)', 
+              cursor: 'pointer', padding: '0.5rem', width: '48px', height: '48px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'color 0.2s ease'
+            }}
+            onClick={() => setShowSettings(true)}
+            aria-label="Settings"
+            onMouseOver={(e) => e.currentTarget.style.color = 'var(--text)'}
+            onMouseOut={(e) => e.currentTarget.style.color = 'rgba(244, 232, 214, 0.4)'}
+          >
+            <GearIcon />
+          </button>
+        </div>
+
         {/* Header */}
         <header className="brand" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '1rem', marginBottom: '1rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -202,38 +220,20 @@ export default function UnpromptedCoach() {
           </div>
 
           {/* Reel - Fixed Height to prevent jumping */}
-          <section className={`reel ${isSpinning ? 'is-spinning' : ''}`} style={{ marginBottom: '0', height: '140px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+          <section className={`reel ${isSpinning ? 'is-spinning' : ''}`} style={{ marginBottom: '0', height: '140px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: '90vw' }}>
             <p className="reel-eyebrow" style={{ margin: '0 0 0.5rem 0' }}>READY</p>
-            <p className="reel-phrase" style={{ fontSize: '3.5rem', padding: '0 1rem', margin: 0, textAlign: 'center', lineHeight: '1.1' }}>{topic}</p>
+            <p className="reel-phrase" style={{ fontSize: 'clamp(2rem, 8vw, 3.5rem)', padding: '0 1rem', margin: 0, textAlign: 'center', lineHeight: '1.1' }}>{topic}</p>
           </section>
 
         </main>
 
         {/* Actions pinned to bottom with Max Width for Desktop */}
-        <div className="actions" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', width: '100%', maxWidth: '500px', margin: '0 auto', gap: '16px', padding: '1rem', paddingBottom: '0.5rem' }}>
+        <div className="actions" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', width: '100%', maxWidth: '500px', margin: '0 auto', gap: '16px', padding: '1rem', paddingBottom: '2rem' }}>
           <button className="btn primary" onClick={spinTopic} disabled={isSpinning} style={{ flex: 1, minHeight: '56px', fontSize: '1.1rem' }}>
             {isSpinning ? '...' : 'Spin'}
           </button>
-          <button className="btn secondary" onClick={() => startRecording(topic, enableAiReview, contextMode)} disabled={isSpinning} style={{ flex: 2, minHeight: '56px', fontSize: '1.1rem' }}>
+          <button className="btn secondary" onClick={() => startRecording(topic, enableAiReview, contextMode)} disabled={isSpinning} style={{ flex: 2, minHeight: '56px', fontSize: '1.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Start {durationSetting >= 60 ? `${durationSetting/60} min` : `${durationSetting} sec`} timer
-          </button>
-        </div>
-
-        {/* Settings Gear - Bottom Center */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-          <button 
-            style={{ 
-              background: 'none', border: 'none', color: 'rgba(244, 232, 214, 0.4)', 
-              cursor: 'pointer', padding: '0.5rem', width: '48px', height: '48px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'color 0.2s ease'
-            }}
-            onClick={() => setShowSettings(true)}
-            aria-label="Settings"
-            onMouseOver={(e) => e.currentTarget.style.color = 'var(--text)'}
-            onMouseOut={(e) => e.currentTarget.style.color = 'rgba(244, 232, 214, 0.4)'}
-          >
-            <GearIcon />
           </button>
         </div>
       </div>
@@ -384,7 +384,7 @@ export default function UnpromptedCoach() {
               {/* Video Playback */}
               {recordedUrl && (
                 <div style={{ margin: aiFeedback?.overallScore ? '0' : '1rem 0', flexShrink: 0 }}>
-                  <video src={recordedUrl} controls playsInline style={{ width: '100%', borderRadius: '1rem', maxHeight: aiFeedback?.overallScore ? 300 : 500, background: '#000', objectFit: 'contain' }} />
+                  <video src={recordedUrl} controls playsInline style={{ width: '100%', borderRadius: '1rem', maxHeight: aiFeedback?.overallScore ? 300 : 500, background: '#000', objectFit: 'cover' }} />
                 </div>
               )}
 
@@ -417,7 +417,7 @@ export default function UnpromptedCoach() {
             {/* Bottom Actions - Pinned to Bottom */}
             <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '1rem' }}>
               {recordedUrl && (
-                <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+                <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
                   <a href={recordedUrl} download="unprompted_speech.webm" className="btn secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '0.8rem 1rem', fontSize: '0.9rem', flex: 1, textDecoration: 'none' }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
                     Download
