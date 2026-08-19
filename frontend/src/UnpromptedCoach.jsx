@@ -46,6 +46,7 @@ export default function UnpromptedCoach() {
   const dropdownRef = useRef(null);
   const videoRef = useRef(null);
 
+  const [durationSetting, setDurationSetting] = useState(60);
   const activeNiches = contextMode === 'general' ? GENERAL_NICHES : INTERVIEW_NICHES;
 
   const {
@@ -59,7 +60,7 @@ export default function UnpromptedCoach() {
     startRecording,
     stopRecording,
     resetSession
-  } = useSpeechSession({ speechDuration: 60 });
+  } = useSpeechSession({ speechDuration: durationSetting });
 
   // Attach live camera stream
   useEffect(() => {
@@ -112,8 +113,8 @@ export default function UnpromptedCoach() {
   };
 
   const selectedNicheObj = activeNiches.find(n => n.id === niche) || activeNiches[0];
-  const elapsed = 60 - timeRemaining;
-  const stage = elapsed < 20 ? 0 : elapsed < 40 ? 1 : 2;
+  const elapsed = durationSetting - timeRemaining;
+  const stage = elapsed < (durationSetting / 3) ? 0 : elapsed < (durationSetting * 0.66) ? 1 : 2;
 
   return (
     <div className="page">
@@ -131,9 +132,8 @@ export default function UnpromptedCoach() {
         }}
       >
         {/* Header */}
-        <header className="brand" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0 1rem', marginBottom: '1rem' }}>
-          <div style={{ flex: 1 }} />
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 2 }}>
+        <header className="brand" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '1rem', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <h1 className="brand-mark" style={{ margin: 0, fontSize: '2rem' }}>Unprompted</h1>
             <div className="brand-credit">
               made by 
@@ -141,19 +141,6 @@ export default function UnpromptedCoach() {
                 <InstagramIcon /> @praveenkashyap.10
               </span>
             </div>
-          </div>
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-            <button 
-              style={{ 
-                background: 'none', border: 'none', color: 'rgba(244, 232, 214, 0.6)', 
-                cursor: 'pointer', padding: '0.5rem', width: '48px', height: '48px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}
-              onClick={() => setShowSettings(true)}
-              aria-label="Settings"
-            >
-              <GearIcon />
-            </button>
           </div>
         </header>
 
@@ -177,7 +164,7 @@ export default function UnpromptedCoach() {
               💼 Tech
             </button>
           </div>
-          <p className="mode-desc">
+          <p className="mode-desc" style={{ marginBottom: '1.5rem' }}>
             {contextMode === 'general' ? 'Minimal prep. Try to think quick on your feet.' : 'Test your technical depth and articulation.'}
           </p>
 
@@ -214,21 +201,39 @@ export default function UnpromptedCoach() {
             </div>
           </div>
 
-          {/* Reel */}
-          <section className={`reel ${isSpinning ? 'is-spinning' : ''}`} style={{ marginBottom: '0' }}>
-            <p className="reel-eyebrow">READY</p>
-            <p className="reel-phrase" style={{ fontSize: '3.5rem', padding: '0 1rem' }}>{topic}</p>
+          {/* Reel - Fixed Height to prevent jumping */}
+          <section className={`reel ${isSpinning ? 'is-spinning' : ''}`} style={{ marginBottom: '0', height: '140px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+            <p className="reel-eyebrow" style={{ margin: '0 0 0.5rem 0' }}>READY</p>
+            <p className="reel-phrase" style={{ fontSize: '3.5rem', padding: '0 1rem', margin: 0, textAlign: 'center', lineHeight: '1.1' }}>{topic}</p>
           </section>
 
         </main>
 
-        {/* Actions pinned to bottom */}
-        <div className="actions" style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '1rem', padding: '1rem', paddingBottom: '2rem' }}>
-          <button className="btn primary" onClick={spinTopic} disabled={isSpinning} style={{ width: '100%', minHeight: '56px', fontSize: '1.1rem' }}>
-            {isSpinning ? 'Spinning…' : 'Spin'}
+        {/* Actions pinned to bottom with Max Width for Desktop */}
+        <div className="actions" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', width: '100%', maxWidth: '500px', margin: '0 auto', gap: '16px', padding: '1rem', paddingBottom: '0.5rem' }}>
+          <button className="btn primary" onClick={spinTopic} disabled={isSpinning} style={{ flex: 1, minHeight: '56px', fontSize: '1.1rem' }}>
+            {isSpinning ? '...' : 'Spin'}
           </button>
-          <button className="btn secondary" onClick={() => startRecording(topic, enableAiReview, contextMode)} disabled={isSpinning} style={{ width: '100%', minHeight: '56px', fontSize: '1.1rem' }}>
-            Start 1 min timer
+          <button className="btn secondary" onClick={() => startRecording(topic, enableAiReview, contextMode)} disabled={isSpinning} style={{ flex: 2, minHeight: '56px', fontSize: '1.1rem' }}>
+            Start {durationSetting >= 60 ? `${durationSetting/60} min` : `${durationSetting} sec`} timer
+          </button>
+        </div>
+
+        {/* Settings Gear - Bottom Center */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+          <button 
+            style={{ 
+              background: 'none', border: 'none', color: 'rgba(244, 232, 214, 0.4)', 
+              cursor: 'pointer', padding: '0.5rem', width: '48px', height: '48px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'color 0.2s ease'
+            }}
+            onClick={() => setShowSettings(true)}
+            aria-label="Settings"
+            onMouseOver={(e) => e.currentTarget.style.color = 'var(--text)'}
+            onMouseOut={(e) => e.currentTarget.style.color = 'rgba(244, 232, 214, 0.4)'}
+          >
+            <GearIcon />
           </button>
         </div>
       </div>
@@ -256,6 +261,28 @@ export default function UnpromptedCoach() {
                 <span className="slider"></span>
               </label>
             </div>
+
+            <div className="setting-row" style={{ marginTop: '1.5rem' }}>
+              <div className="setting-info">
+                <span className="setting-label">Speech Duration</span>
+                <span className="setting-desc">How long the timer runs.</span>
+              </div>
+              <select 
+                value={durationSetting} 
+                onChange={(e) => setDurationSetting(parseInt(e.target.value))}
+                style={{ 
+                  background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', 
+                  padding: '0.6rem', borderRadius: '0.5rem', fontSize: '1rem',
+                  cursor: 'pointer' 
+                }}
+              >
+                <option value={30}>30 sec</option>
+                <option value={60}>1 min</option>
+                <option value={120}>2 min</option>
+                <option value={300}>5 min</option>
+              </select>
+            </div>
+
           </div>
         </div>
       )}
@@ -300,7 +327,7 @@ export default function UnpromptedCoach() {
                 />
                 <div style={{ position: 'absolute', bottom: '15%', width: '100%', textAlign: 'center' }}>
                   <span className="timer-digits" style={{ fontSize: '2.5rem', background: 'rgba(17,21,20,0.7)', padding: '4px 16px', borderRadius: 999, fontWeight: 600 }}>
-                    0:{timeRemaining.toString().padStart(2, '0')}
+                    {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
                   </span>
                 </div>
               </div>
@@ -324,72 +351,87 @@ export default function UnpromptedCoach() {
         </div>
       </div>
 
-      {/* Review Modal */}
-      <div className="timer-overlay" style={{ opacity: sessionState === 'review' ? 1 : 0, pointerEvents: sessionState === 'review' ? 'auto' : 'none', transition: 'opacity 0.3s ease', overflowY: 'auto', padding: 'env(safe-area-inset-top) 1rem env(safe-area-inset-bottom) 1rem' }}>
+      {/* Review Modal - Zero Scroll Architecture */}
+      <div className="timer-overlay" style={{ opacity: sessionState === 'review' ? 1 : 0, pointerEvents: sessionState === 'review' ? 'auto' : 'none', transition: 'opacity 0.3s ease', display: 'flex', flexDirection: 'column', height: '100dvh', padding: 'env(safe-area-inset-top) 1rem env(safe-area-inset-bottom) 1rem' }}>
         {sessionState === 'review' && (
-          <div className="timer-overlay-inner" style={{ maxWidth: 680, textAlign: 'left', margin: 'auto', padding: '2rem 0', minHeight: '100%' }}>
-            <h2 className="brand-mark" style={{ fontSize: '2.2rem' }}>
-              {aiFeedback?.overallScore ? 'AI Speech Feedback' : 'Speech Review'}
-            </h2>
-            <p className="timer-topic" style={{ fontSize: '1.2rem', fontWeight: 400 }}>Topic: {topic}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', maxWidth: '680px', margin: '0 auto' }}>
+            
+            {/* Header - Fixed at Top */}
+            <div style={{ flexShrink: 0, paddingBottom: '1rem', paddingTop: '1rem' }}>
+              <h2 className="brand-mark" style={{ fontSize: '2.2rem', margin: 0 }}>
+                {aiFeedback?.overallScore ? 'AI Speech Feedback' : 'Speech Review'}
+              </h2>
+              <p className="timer-topic" style={{ fontSize: '1.2rem', fontWeight: 400, margin: '0.5rem 0 0 0' }}>Topic: {topic}</p>
+            </div>
 
-            {aiFeedback?.overallScore && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%', margin: '1.5rem 0' }}>
-                <div className="speech-stage" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '1.5rem' }}>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--accent)', letterSpacing: '1px' }}>OVERALL SCORE</span>
-                  <strong style={{ fontSize: '2.5rem', marginTop: '0.5rem' }}>{aiFeedback.overallScore} <span style={{fontSize:'1rem', color:'rgba(244, 232, 214, 0.5)'}}>/ 100</span></strong>
+            {/* Scrollable Middle Container (Video + Feedback) */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', paddingRight: '0.5rem' }}>
+              
+              {aiFeedback?.overallScore && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%', margin: '1rem 0' }}>
+                  <div className="speech-stage" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '1.5rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--accent)', letterSpacing: '1px' }}>OVERALL SCORE</span>
+                    <strong style={{ fontSize: '2.5rem', marginTop: '0.5rem' }}>{aiFeedback.overallScore} <span style={{fontSize:'1rem', color:'rgba(244, 232, 214, 0.5)'}}>/ 100</span></strong>
+                  </div>
+                  <div className="speech-stage" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '1.5rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--accent)', letterSpacing: '1px' }}>PACING (WPM)</span>
+                    <strong style={{ fontSize: '2.5rem', marginTop: '0.5rem' }}>{aiFeedback.wordsPerMinute} <span style={{fontSize:'1rem', color:'rgba(244, 232, 214, 0.5)'}}>WPM</span></strong>
+                  </div>
                 </div>
-                <div className="speech-stage" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '1.5rem' }}>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--accent)', letterSpacing: '1px' }}>PACING (WPM)</span>
-                  <strong style={{ fontSize: '2.5rem', marginTop: '0.5rem' }}>{aiFeedback.wordsPerMinute} <span style={{fontSize:'1rem', color:'rgba(244, 232, 214, 0.5)'}}>WPM</span></strong>
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Video Playback & Actions */}
-            {recordedUrl && (
-              <div style={{ margin: aiFeedback?.overallScore ? '0' : '2rem 0' }}>
-                <video src={recordedUrl} controls playsInline style={{ width: '100%', borderRadius: '1rem', maxHeight: 400, background: '#000', objectFit: 'contain' }} />
-                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+              {/* Video Playback */}
+              {recordedUrl && (
+                <div style={{ margin: aiFeedback?.overallScore ? '0' : '1rem 0', flexShrink: 0 }}>
+                  <video src={recordedUrl} controls playsInline style={{ width: '100%', borderRadius: '1rem', maxHeight: aiFeedback?.overallScore ? 300 : 500, background: '#000', objectFit: 'contain' }} />
+                </div>
+              )}
+
+              {/* Verbatim Transcript */}
+              {aiFeedback?.transcript && (
+                <div style={{ marginTop: '1.5rem', flexShrink: 0 }}>
+                  <h4 style={{ color: 'var(--text)', margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>Your Transcript</h4>
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '0.5rem', fontSize: '0.95rem', lineHeight: '1.5', color: 'rgba(244, 232, 214, 0.8)', fontStyle: 'italic' }}>
+                    "{aiFeedback.transcript}"
+                  </div>
+                </div>
+              )}
+
+              {/* Strengths & Improvements */}
+              {aiFeedback?.overallScore && (
+                <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', flexShrink: 0, paddingBottom: '1rem' }}>
+                  <div>
+                    <h4 style={{ color: '#b7efc5', margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Strengths</h4>
+                    <ul style={{ paddingLeft: '1.2rem', margin: 0 }}>{aiFeedback.strengths?.map((s, i) => <li key={i}>{s}</li>)}</ul>
+                  </div>
+                  <div>
+                    <h4 style={{ color: 'var(--accent-bright)', margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Areas to Improve</h4>
+                    <ul style={{ paddingLeft: '1.2rem', margin: 0 }}>{aiFeedback.areasToImprove?.map((a, i) => <li key={i}>{a}</li>)}</ul>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Bottom Actions - Pinned to Bottom */}
+            <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '1rem' }}>
+              {recordedUrl && (
+                <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
                   <a href={recordedUrl} download="unprompted_speech.webm" className="btn secondary" style={{ padding: '0.8rem 1rem', fontSize: '0.9rem', flex: 1, textAlign: 'center' }}>
                     ⬇ Download
                   </a>
                   {navigator.share && (
-                    <button onClick={shareRecording} className="btn primary" style={{ padding: '0.8rem 1rem', fontSize: '0.9rem', flex: 1 }}>
-                      ⤴ Share to App
+                    <button onClick={shareRecording} className="btn secondary" style={{ padding: '0.8rem 1rem', fontSize: '0.9rem', flex: 1 }}>
+                      ⤴ Share
                     </button>
                   )}
                 </div>
-              </div>
-            )}
-
-            {/* Verbatim Transcript */}
-            {aiFeedback?.transcript && (
-              <div style={{ marginTop: '2rem' }}>
-                <h4 style={{ color: 'var(--text)', margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>Your Transcript</h4>
-                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '0.5rem', fontSize: '0.95rem', lineHeight: '1.5', color: 'rgba(244, 232, 214, 0.8)', fontStyle: 'italic' }}>
-                  "{aiFeedback.transcript}"
-                </div>
-              </div>
-            )}
-
-            {/* Strengths & Improvements */}
-            {aiFeedback?.overallScore && (
-              <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <div>
-                  <h4 style={{ color: '#b7efc5', margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Strengths</h4>
-                  <ul style={{ paddingLeft: '1.2rem' }}>{aiFeedback.strengths?.map((s, i) => <li key={i}>{s}</li>)}</ul>
-                </div>
-                <div>
-                  <h4 style={{ color: 'var(--accent-bright)', margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Areas to Improve</h4>
-                  <ul style={{ paddingLeft: '1.2rem' }}>{aiFeedback.areasToImprove?.map((a, i) => <li key={i}>{a}</li>)}</ul>
-                </div>
-              </div>
-            )}
-
-            <button className="btn primary" onClick={resetSession} style={{ marginTop: '3rem', width: '100%', minHeight: '56px', fontSize: '1.1rem', marginBottom: '2rem' }}>
-              Practice Another Topic
-            </button>
+              )}
+              <button className="btn primary" onClick={resetSession} style={{ width: '100%', minHeight: '56px', fontSize: '1.1rem' }}>
+                Practice Another Topic
+              </button>
+            </div>
+            
           </div>
         )}
       </div>
