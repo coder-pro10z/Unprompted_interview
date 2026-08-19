@@ -262,25 +262,26 @@ export default function UnpromptedCoach() {
               </label>
             </div>
 
-            <div className="setting-row" style={{ marginTop: '1.5rem' }}>
-              <div className="setting-info">
-                <span className="setting-label">Speech Duration</span>
-                <span className="setting-desc">How long the timer runs.</span>
+            <div className="setting-row" style={{ marginTop: '1.5rem', flexDirection: 'column', alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <div className="setting-info" style={{ flex: 1 }}>
+                  <span className="setting-label">Speech Duration</span>
+                  <span className="setting-desc">How long the timer runs.</span>
+                </div>
+                <strong style={{ fontSize: '1.1rem', color: 'var(--accent)' }}>
+                  {durationSetting >= 60 ? `${durationSetting/60} min` : `${durationSetting} sec`}
+                </strong>
               </div>
-              <select 
-                value={durationSetting} 
-                onChange={(e) => setDurationSetting(parseInt(e.target.value))}
+              <input 
+                type="range" 
+                className="premium-slider"
+                min="0" max="3" step="1"
+                value={[30, 60, 120, 300].indexOf(durationSetting)}
+                onChange={(e) => setDurationSetting([30, 60, 120, 300][parseInt(e.target.value)])}
                 style={{ 
-                  background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', 
-                  padding: '0.6rem', borderRadius: '0.5rem', fontSize: '1rem',
-                  cursor: 'pointer' 
+                  background: `linear-gradient(to right, var(--accent) ${([30, 60, 120, 300].indexOf(durationSetting) / 3) * 100}%, rgba(255,255,255,0.1) ${([30, 60, 120, 300].indexOf(durationSetting) / 3) * 100}%)` 
                 }}
-              >
-                <option value={30}>30 sec</option>
-                <option value={60}>1 min</option>
-                <option value={120}>2 min</option>
-                <option value={300}>5 min</option>
-              </select>
+              />
             </div>
 
           </div>
@@ -417,12 +418,14 @@ export default function UnpromptedCoach() {
             <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '1rem' }}>
               {recordedUrl && (
                 <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
-                  <a href={recordedUrl} download="unprompted_speech.webm" className="btn secondary" style={{ padding: '0.8rem 1rem', fontSize: '0.9rem', flex: 1, textAlign: 'center' }}>
-                    ⬇ Download
+                  <a href={recordedUrl} download="unprompted_speech.webm" className="btn secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '0.8rem 1rem', fontSize: '0.9rem', flex: 1, textDecoration: 'none' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    Download
                   </a>
                   {navigator.share && (
-                    <button onClick={shareRecording} className="btn secondary" style={{ padding: '0.8rem 1rem', fontSize: '0.9rem', flex: 1 }}>
-                      ⤴ Share
+                    <button onClick={shareRecording} className="btn secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '0.8rem 1rem', fontSize: '0.9rem', flex: 1 }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+                      Share
                     </button>
                   )}
                 </div>
